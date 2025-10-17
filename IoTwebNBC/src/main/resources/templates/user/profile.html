@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+	<head>
+		<meta charset="UTF-8" />
+		<title>Profile</title>
+		<link rel="stylesheet" href="/css/profile.css" />
+		
+	</head>
+	<body>
+		<div th:replace="fragments/header :: header"></div>
+
+		<main class="profile-page">
+			<article class="profile-card">
+				<div class="card-top">
+					<div class="avatar" aria-hidden="true" style="background-image: url('/images/cafbaed4-4c49-454f-aa67-187c715d9c27.jpg');"></div>
+					<h2 class="profile-name">Nguyễn Bá Cường</h2>
+				</div>
+				<div class="profile-body">
+					<div class="codes">B22DCCN096 - D22HTTT06</div>
+
+					<div class="profile-row link-row">
+						<div class="link-item" aria-label="Email contact">
+							<span class="icon icon-mail" aria-hidden="true"></span>
+							<a href="mailto:CuongNB.B22CN096@stu.ptit.edu.vn">
+								<span class="sr-only">Email:</span>
+								CuongNB.B22CN096@stu.ptit.edu.vn
+							</a>
+						</div>
+					</div>
+
+					<div class="profile-row link-row">
+						<div class="link-item" aria-label="Phone contact">
+							<span class="icon icon-phone" aria-hidden="true"></span>
+							<a href="tel:0988253401"><span class="sr-only">Phone:</span>0988253401</a>
+						</div>
+					</div>
+
+					<div class="profile-row link-row">
+						<div class="link-item" aria-label="Github profile">
+							<span class="icon icon-github" aria-hidden="true"></span>
+							<a href="https://github.com/CuongTu1806/Btl_Iot_NBC" target="_blank" rel="noopener"><span class="sr-only">Github:</span>BTL_IOT_NBC_github</a>
+						</div>
+					</div>
+
+					<div class="profile-row link-row">
+						<div class="link-item" aria-label="Download CV PDF">
+							<span class="icon icon-download" aria-hidden="true"></span>
+							<a href="/doc/Nguyễn Bá Cường-B22DCCN096-IOT.pdf" download><span class="sr-only">Download PDF:</span>Nguyễn Bá Cường-B22DCCN096-IOT.pdf</a>
+						</div>
+					</div>
+
+				</div>
+			</article>
+		</main>
+	</body>
+	</html>

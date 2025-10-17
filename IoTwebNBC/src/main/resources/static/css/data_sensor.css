@@ -1,0 +1,471 @@
+/* Reset */
+body {
+    margin: 0;
+    padding: 0;
+    /* remove dark background so page looks full-width and light */
+    background: #ffffff;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    color: #222;
+}
+html, body {
+    height: 100%;
+
+}
+
+.container {
+    background: #fff;
+    /* expand content area to fill most of the screen; keep small horizontal padding */
+    max-width: 1100px;
+	margin: 10px auto;
+	padding: 12px 24px;
+}
+
+h2 {
+    margin-top: 0;
+    color: #222;
+    font-weight: 500;
+    letter-spacing: 1px;
+}
+
+.filter-bar {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 10px;
+    align-items: center;
+}
+
+.filter-bar select,
+.filter-bar input[type="text"] {
+    padding: 6px 12px;
+    border: 1px solid #bbb;
+    border-radius: 4px;
+    font-size: 15px;
+    background: #f8f8f8;
+    min-width: 110px;
+    outline: none;
+    transition: border 0.2s;
+}
+
+.device-selection-group {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 300px;
+}
+
+.device-dropdown-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.device-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+    min-width: 100px;
+}
+
+.device-select {
+    padding: 8px 12px;
+    border: 1px solid #bbb;
+    border-radius: 4px;
+    font-size: 14px;
+    background: #fff;
+    min-width: 200px;
+    outline: none;
+    transition: border 0.2s;
+    cursor: pointer;
+}
+
+.device-select:focus {
+    border: 1.5px solid #1976d2;
+}
+
+.sensor-threshold-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.selected-sensors {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.sensor-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: #fff;
+    transition: all 0.2s;
+}
+
+.sensor-item:hover {
+    border-color: #1976d2;
+    box-shadow: 0 2px 4px rgba(25, 118, 210, 0.1);
+}
+
+.sensor-row {
+    display: grid;
+    /* checkbox | label (auto width) | operator | value */
+    grid-template-columns: 34px 50px 135px 110px;
+    gap: 6px;
+    align-items: center;
+    background: #fff;
+    border: 1px solid #eef2f5;
+    border-radius: 8px;
+    padding: 10px;
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+
+.sensor-row > label { /* span checkbox + label area (col 1-2) */
+    display: grid;
+    grid-template-columns: 10px 1fr; /* checkbox | text */
+    gap: 6px;
+    align-items: center;
+    font-weight: 600;
+    grid-column: 1 / 3;
+}
+
+.sensor-label { 
+    font-size: 15px;
+    display: block;
+    white-space: normal; /* allow wrapping so full name shows */
+    overflow: visible;
+}
+
+.sensor-row > label input.sensor-checkbox {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    justify-self: center;
+}
+
+/* Remove the blue square visual marker: replace with a subtle status dot if needed */
+.sensor-icon { display: none; }
+
+.sensor-name {
+    /* make the name subtle and allow wrapping */
+    background: transparent;
+    color: #333;
+    padding: 0;
+    border-radius: 0;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.threshold-operator, .threshold-select {
+    width: auto;
+    min-width: 120px;
+    padding: 6px 8px;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    font-size: 13px;
+    background: #fff;
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    max-width: 140px;
+    box-sizing: border-box;
+    margin-left: 0; /* ensure no extra gap */
+}
+
+.sensor-row .threshold-operator { grid-column: 3 / 4; }
+
+.threshold-select:focus {
+    border-color: #1976d2;
+    box-shadow: 0 2px 8px rgba(25,118,210,0.08);
+}
+
+.threshold-value {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    font-size: 13px;
+    max-width: 120px;
+    box-sizing: border-box;
+}
+
+.sensor-row .threshold-value { grid-column: 4 / 5; }
+
+.sensor-row:focus-within {
+    border-color: #cfe2ff;
+    box-shadow: 0 4px 14px rgba(31, 95, 212, 0.06);
+}
+
+/* Ensure grid children can shrink instead of overflowing and overlapping */
+.sensor-row > * {
+    min-width: 0;
+}
+
+/* Allow the label text to wrap cleanly and not be overlapped by inputs */
+.sensor-row .sensor-label {
+    overflow: visible; /* ensure full text is shown */
+    text-overflow: clip;
+    white-space: normal;
+    min-width: 0;
+}
+
+.remove-sensor {
+    background: #f44336;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.remove-sensor:hover {
+    background: #d32f2f;
+}
+
+.input-group {
+    position: relative;
+    min-width: 200px;
+}
+
+.input-guide {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    padding: 8px 12px;
+    font-size: 12px;
+    color: #6c757d;
+    display: none;
+    z-index: 10;
+}
+
+.input-guide.show {
+    display: block;
+}
+
+.filter-bar select:focus,
+.filter-bar input[type="text"]:focus {
+    border: 1.5px solid #1976d2;
+}
+
+.filter-bar button {
+    padding: 7px 18px;
+    background: #fff;
+    border: 1.5px solid #1976d2;
+    color: #1976d2;
+    border-radius: 4px;
+    font-size: 15px;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+
+.filter-bar button:hover {
+    background: #1976d2;
+    color: #fff;
+}
+
+.search-info {
+    font-size: 13px;
+    color: #888;
+    margin-bottom: 10px;
+    margin-left: 2px;
+}
+
+.table-responsive {
+    overflow-x: auto;
+    margin-bottom: 10px;
+    background: #fff;
+    border-radius: 6px;
+    border: 1px solid #e6e6e6;
+    /* use viewport height so table body can be scrolled with mouse wheel */
+    max-height: 65vh;
+    overflow-y: auto;
+}
+
+#sensorTable {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    font-size: 15px;
+}
+
+#sensorTable th, #sensorTable td {
+    border: 1px solid #bccedf;
+    padding: 10px 14px; /* increase padding to make table feel larger */
+    text-align: center;
+}
+
+
+#sensorTable th {
+    background: #f5f7fb;
+    color: #1976d2;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+    position: sticky; /* keep header visible */
+    top: 0;
+    z-index: 2;
+}
+
+/* Sort arrows in headers */
+.sort-arrows {
+    display: inline-flex;
+    flex-direction: column;
+    margin-left: 8px;
+    font-size: 0.7em;
+    vertical-align: middle;
+    line-height: 1;
+    opacity: 0.7;
+}
+.sort-arrows .arrow {
+    display: block;
+    width: 1em;
+    text-align: center;
+    color: #8aaad8;
+    transition: color 0.12s, transform 0.12s;
+}
+.sort-arrows .arrow.up { transform: translateY(-1px); }
+.sort-arrows .arrow.down { transform: translateY(1px); }
+.sort-arrows .arrow:hover { color: #195bb5; }
+
+/* Indicate active sort state with .sorted-asc / .sorted-desc on th */
+th.sorted-asc .sort-arrows .arrow.up { color: #195bb5; font-weight: 700; }
+th.sorted-desc .sort-arrows .arrow.down { color: #195bb5; font-weight: 700; }
+
+@media (max-width: 640px) {
+    .sort-arrows { display: none; }
+}
+
+#sensorTable tbody tr:nth-child(even) {
+    background: #f8fafd;
+}
+
+#sensorTable tbody tr:hover {
+    background: #e3f0fc;
+}
+
+.table-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+    font-size: 15px;
+}
+
+.pagination {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.pagination button {
+    background: #fff;
+    border: 1px solid #bbb;
+    color: #1976d2;
+    border-radius: 3px;
+    padding: 3px 9px;
+    font-size: 15px;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+
+.pagination button.active,
+.pagination button:hover {
+    background: #1976d2;
+    color: #fff;
+    border-color: #1976d2;
+}
+
+.row-count {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.row-count select {
+    padding: 3px 7px;
+    border-radius: 3px;
+    border: 1px solid #bbb;
+    font-size: 15px;
+    background: #f8f8f8;
+}
+
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-btn {
+    font-size: 14px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid #bbb;
+    background: #fff;
+    cursor: pointer;
+    margin-right: 8px;
+}
+
+.sensor-dropdown-container {
+    position: absolute;
+    top: 110%;
+    left: 0;
+    z-index: 500;
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 12px 12px;
+    min-width: 380px; /* give more room for sensor names */
+    max-width: 520px;
+    max-height: 320px; /* prevent covering whole page */
+    overflow-y: auto;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.18);
+}
+
+@media (max-width: 700px) {
+    .container {
+        padding: 10px 2px;
+    }
+    .filter-bar {
+        flex-direction: column;
+        gap: 8px;
+        align-items: stretch;
+    }
+    .device-selection-group {
+        min-width: auto;
+    }
+    .device-dropdown-container {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+    .device-select {
+        width: 100%;
+        min-width: auto;
+    }
+    .sensor-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    .threshold-select {
+        width: 100%;
+        min-width: auto;
+    }
+    .input-group {
+        min-width: auto;
+    }
+    .table-footer {
+        flex-direction: column;
+        gap: 8px;
+        align-items: stretch;
+    }
+}

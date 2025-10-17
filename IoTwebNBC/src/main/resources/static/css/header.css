@@ -1,0 +1,90 @@
+/* Header shared styles - use this file to keep header fonts/sizing consistent */
+:root {
+  --header-height: 64px;
+  --header-bg: #2196f3;
+  --header-color: #fff;
+  --header-font-size: 1.05rem; /* unified font-size for nav */
+  --header-font-weight: 700;
+}
+
+.header-bar {
+  width: 100%;
+  background: var(--header-bg);
+  color: var(--header-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 28px;
+  height: var(--header-height);
+  box-sizing: border-box;
+}
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--header-height);
+  width: 100%;
+  box-sizing: border-box;
+}
+.topbar > link[rel="stylesheet"] {
+  display: none;
+}
+.logo .logo-text {
+  font-size: 1.15rem !important;
+  font-weight: 700 !important;
+  color: var(--header-color) !important;
+  text-decoration: none !important;
+  display: inline-block;
+  line-height: var(--header-height) !important;
+  padding: 0 4px;
+}
+.header-nav {
+  display: flex;
+  gap: 26px;
+  align-items: center;
+  margin: 0;
+  justify-content: flex-end;
+  font-family: Segoe UI, Arial, sans-serif;
+}
+.header-nav a {
+  color: var(--header-color) !important;
+  text-decoration: none !important;
+  font-size: var(--header-font-size) !important;
+  font-weight: var(--header-font-weight) !important;
+  padding: 0 14px !important;
+  line-height: var(--header-height) !important;
+  border-radius: 6px;
+  display: inline-block;
+}
+.header-nav a.active {
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) inset;
+  color: var(--header-color);
+  font-weight: 800;
+  position: relative;
+}
+.header-nav a.active::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 8px;
+  height: 3px;
+  background: #ffffff;
+  width: 48%;
+  border-radius: 2px;
+  opacity: 0.95;
+}
+.header-nav a:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+@media (max-width: 720px) {
+  .logo .logo-text {
+    font-size: 1rem;
+  }
+  .header-nav a {
+    font-size: 0.95rem;
+    padding: 0 8px;
+  }
+}

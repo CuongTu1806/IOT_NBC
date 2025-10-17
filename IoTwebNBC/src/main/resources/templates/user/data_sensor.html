@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Data Sensor</title>
+    <link rel="stylesheet" th:href="@{/css/data_sensor.css}">
+</head>
+<body>
+    <!-- Header fragment -->
+    <div th:replace="fragments/header :: header"></div>
+
+    <div class="container">
+        <h2 style="margin: 5px">Data Sensor</h2>
+
+        <form id="filterForm" class="filter-bar" method="get" th:action="@{/data_sensor}">
+            <input type="hidden" id="pageInput" name="page" th:value="${page}" />
+            
+            
+         
+            <select id="sensorSelect" name="sensor" th:value="${sensor}">
+                <option value="">All</option>
+                <option value="id" th:selected="${sensor == 'id'}">ID</option>
+                <option value="temperature" th:selected="${sensor == 'temperature'}">Temperature</option>
+                <option value="humidity" th:selected="${sensor == 'humidity'}">Humidity</option>
+                <option value="light_level" th:selected="${sensor == 'light_level'}">Light</option>
+                <option value="timestamp" th:selected="${sensor == 'timestamp'}">Time</option>
+            </select>
+
+            <div class="input-group">
+                <input type="text" id="searchInput" name="inputSearch" placeholder="Nhập thông tin cần tìm" th:value="${inputSearch}">
+                <div id="inputGuide" class="input-guide"></div>
+            </div>
+            <button id="searchBtn" type="submit">Search</button>
+        </form>
+
+<!--            TABLE-->
+            <div class="table-responsive">
+                <table id="sensorTable">
+                    <thead>
+                    <tr>
+                        <th data-sort-field="id">ID <span class="sort-arrows" title="Sort"><span class="arrow up sort-up" data-dir="asc">▲</span><span class="arrow down sort-down" data-dir="desc">▼</span></span></th>
+                        <th data-sort-field="temperature">Temperature <span class="sort-arrows" title="Sort"><span class="arrow up sort-up" data-dir="asc">▲</span><span class="arrow down sort-down" data-dir="desc">▼</span></span></th>
+                        <th data-sort-field="humidity">Humidity <span class="sort-arrows" title="Sort"><span class="arrow up sort-up" data-dir="asc">▲</span><span class="arrow down sort-down" data-dir="desc">▼</span></span></th>
+                        <th data-sort-field="lightLevel">Light <span class="sort-arrows" title="Sort"><span class="arrow up sort-up" data-dir="asc">▲</span><span class="arrow down sort-down" data-dir="desc">▼</span></span></th>
+                        <th data-sort-field="timestamp">Time <span class="sort-arrows" title="Sort"><span class="arrow up sort-up" data-dir="asc">▲</span><span class="arrow down sort-down" data-dir="desc">▼</span></span></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="sensor : ${dataSensorEntities}">
+                        <td th:text="${sensor.id}"></td>
+                        <td th:text="${sensor.temperature}"></td>
+                        <td th:text="${sensor.humidity}"></td>
+                        <td th:text="${sensor.lightLevel}"></td>
+                        <td th:text="${#temporals.format(sensor.timestamp, 'yyyy-MM-dd HH:mm:ss')}"></td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(dataSensorEntities)}">
+                        <td colspan="5" style="text-align:center;">Không có dữ liệu</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+<!--            FOOTER TABLE-->
+            <div class="table-footer">
+                <div class="pagination fixed-area">
+                    <button type="button" id="prevBtn" th:disabled="${page == 0}">&lt;</button>
+                    <span th:if="${totalPages <= 5}">
+                    <button th:each="i : ${#numbers.sequence(1, totalPages)}"
+                            th:classappend="${i == page + 1} ? ' active' : ''"
+                            th:text="${i}"
+                            th:attr="data-page=${i - 1}"></button>
+                </span>
+                    <span th:if="${totalPages > 5}">
+                    <button type="button" id="pageBtn1" data-page="0">1</button>
+                    <button type="button" id="pageBtn2" data-page="1">2</button>
+                    <input id="pageJumpInput" type="number" min="1" th:attr="max=${totalPages}" placeholder="" style="width:50px;" />
+                    <button id="pageJumpBtn" type="button">Go</button>
+                    <button type="button" th:classappend="${(totalPages - 1) == page + 1} ? ' active' : ''"
+                            th:text="${totalPages - 1}"
+                            th:attr="data-page=${totalPages - 2}"></button>
+                    <button type="button" th:classappend="${totalPages == page + 1} ? ' active' : ''"
+                            th:text="${totalPages}"
+                            th:attr="data-page=${totalPages - 1}"></button>
+                </span>
+                    <button type="button" id="nextBtn" th:disabled="${page + 1 == totalPages}">&gt;</button>
+                </div>
+                <div class="fixed-area">
+                    <div class="row-count">
+                        Số dòng hiển thị
+                        <select id="rowCountSelect" name="size" th:value="${size}">
+                            <option th:selected="${size == 10}" th:value="10">10</option>
+                            <option th:selected="${size == 20}" th:value="20">20</option>
+                            <option th:selected="${size == 30}" th:value="30">30</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+    </div>
+
+
+    <script>
+        // Minimal filter + sorting + pagination scripts (cleaned)
+        (function(){
+            const form = document.getElementById('filterForm');
+            if(!form) return;
+
+            // FILTER: ensure sensor and size are submitted and page resets to 0
+            const sensorSelect = document.getElementById('sensorSelect');
+            const rowCount = document.getElementById('rowCountSelect');
+            const pageInput = document.getElementById('pageInput');
+
+            function ensureHidden(name, value){
+                // If any form control with this name already exists (select/input/textarea),
+                // do not create a duplicate hidden input. Update the existing control's value instead.
+                let existing = form.querySelector('[name="'+name+'"]');
+                if (existing) {
+                    // if it's an input hidden, update its value; otherwise set value on existing control
+                    if (existing.tagName && existing.tagName.toLowerCase() === 'input' && existing.type === 'hidden') {
+                        existing.value = value == null ? '' : value;
+                        return existing;
+                    }
+                    try { existing.value = value == null ? '' : value; } catch(e) { /* ignore */ }
+                    return existing;
+                }
+                // otherwise create a hidden input
+                let el = document.createElement('input');
+                el.type = 'hidden'; el.name = name; el.value = value == null ? '' : value; form.appendChild(el);
+                return el;
+            }
+
+            form.addEventListener('submit', function(){
+                if(pageInput) pageInput.value = '0';
+                if(rowCount) ensureHidden('size', rowCount.value);
+                if(sensorSelect) ensureHidden('sensor', sensorSelect.value);
+            });
+
+            // SORT: attach to sort arrow buttons (asc/desc icons)
+            function ensureSortInputs(){
+                let sf = form.querySelector('input[name="sortField"]');
+                let sd = form.querySelector('input[name="sortDir"]');
+                if(!sf){ sf = document.createElement('input'); sf.type='hidden'; sf.name='sortField'; form.appendChild(sf); }
+                if(!sd){ sd = document.createElement('input'); sd.type='hidden'; sd.name='sortDir'; form.appendChild(sd); }
+                return {sf, sd};
+            }
+
+            document.querySelectorAll('.sort-up').forEach(el => el.addEventListener('click', function(e){
+                e.preventDefault(); e.stopPropagation(); const th = el.closest('th'); if(!th) return; const field = th.getAttribute('data-sort-field'); if(!field) return; const {sf, sd} = ensureSortInputs(); sf.value = field; sd.value = 'asc'; if(pageInput) pageInput.value='0'; form.submit();
+            }));
+            document.querySelectorAll('.sort-down').forEach(el => el.addEventListener('click', function(e){
+                e.preventDefault(); e.stopPropagation(); const th = el.closest('th'); if(!th) return; const field = th.getAttribute('data-sort-field'); if(!field) return; const {sf, sd} = ensureSortInputs(); sf.value = field; sd.value = 'desc'; if(pageInput) pageInput.value='0'; form.submit();
+            }));
+
+            // header click toggles visual classes (keeps UX)
+            document.querySelectorAll('#sensorTable th').forEach(function(th){
+                th.addEventListener('click', function(e){
+                    const field = th.getAttribute('data-sort-field'); if(!field) return;
+                    let sf = form.querySelector('input[name="sortField"]'); let sd = form.querySelector('input[name="sortDir"]'); if(!sf){ sf = document.createElement('input'); sf.type='hidden'; sf.name='sortField'; form.appendChild(sf);} if(!sd){ sd = document.createElement('input'); sd.type='hidden'; sd.name='sortDir'; form.appendChild(sd); }
+                    if(th.classList.contains('sorted-asc')){ th.classList.remove('sorted-asc'); th.classList.add('sorted-desc'); sf.value = field; sd.value = 'desc'; }
+                    else if(th.classList.contains('sorted-desc')){ th.classList.remove('sorted-desc'); sf.value = ''; sd.value = ''; }
+                    else { document.querySelectorAll('#sensorTable th').forEach(h => h.classList.remove('sorted-asc','sorted-desc')); th.classList.add('sorted-asc'); sf.value = field; sd.value = 'asc'; }
+                    if(pageInput) pageInput.value='0'; form.submit();
+                });
+            });
+
+            // PAGINATION: wired later in separate block; expose sync function
+            window.syncSizeToForm = function(){ if(rowCount) ensureHidden('size', rowCount.value); };
+
+        })();
+    </script>
+
+
+    <script th:inline="javascript">
+        // pagination helpers: set the first two buttons so that button2 shows current page
+        (function(){
+            const pageInput = document.getElementById('pageInput');
+            const totalPages = /*[[${totalPages}]]*/ 0; // Thymeleaf will replace
+            const pageBtn1 = document.getElementById('pageBtn1');
+            const pageBtn2 = document.getElementById('pageBtn2');
+
+            function setButton(btn, pageZeroBased, activePage){
+                if(!btn) return;
+                const display = pageZeroBased + 1;
+                btn.textContent = display;
+                btn.setAttribute('data-page', pageZeroBased);
+                const active = (typeof activePage === 'number') ? activePage : parseInt(pageInput.value||'0',10);
+                btn.classList.toggle('active', active === pageZeroBased);
+            }
+
+            // expose for other script blocks
+            window.setButton = setButton;
+
+            window.updateFirstTwoButtons = function(currentZeroBased){
+                if(!pageBtn1 || !pageBtn2) return;
+                // Edge cases: if current is 0 or 1, show 1 and 2
+                if(currentZeroBased <= 1){
+                    setButton(pageBtn1, 0, currentZeroBased);
+                    setButton(pageBtn2, 1, currentZeroBased);
+                    return;
+                }
+                // If near end: per requirement, when current is last or last-1 we want the left two to reset to 1 and 2
+                if(typeof totalPages === 'number' && totalPages > 0){
+                    const last = totalPages - 1;
+                    // if there are only 1 or 2 pages, show them normally
+                    if(totalPages <= 2){
+                        setButton(pageBtn1, 0, currentZeroBased);
+                        setButton(pageBtn2, Math.min(1, last), currentZeroBased);
+                        return;
+                    }
+                    // if current is last or last-1, force left two to be 1 and 2
+                    if(currentZeroBased >= last - 1){
+                        setButton(pageBtn1, 0, currentZeroBased);
+                        setButton(pageBtn2, 1, currentZeroBased);
+                        return;
+                    }
+                }
+                // general case: button2 is current, button1 is previous
+                setButton(pageBtn1, currentZeroBased - 1, currentZeroBased);
+                setButton(pageBtn2, currentZeroBased, currentZeroBased);
+            }
+
+            // initialize on load
+            try{
+                const cur = parseInt(pageInput.value || '0', 10);
+                updateFirstTwoButtons(cur);
+            }catch(e){/* ignore */}
+        })();
+    </script>
+
+        <script>
+            (function(){
+                const form = document.getElementById('filterForm');
+                const pageInput = document.getElementById('pageInput');
+                const prevBtn = document.getElementById('prevBtn');
+                const nextBtn = document.getElementById('nextBtn');
+                const pageJumpInput = document.getElementById('pageJumpInput');
+                const pageJumpBtn = document.getElementById('pageJumpBtn');
+
+                function goToPage(p){
+                    if(!form || !pageInput) return;
+                    pageInput.value = p;
+                    if(typeof window.syncSizeToForm === 'function') window.syncSizeToForm();
+                    form.submit();
+                }
+
+                document.querySelectorAll('.pagination button[data-page]').forEach(btn => {
+                    btn.addEventListener('click', function(e){
+                        e.preventDefault(); e.stopPropagation();
+                        const pRaw = this.getAttribute('data-page');
+                        const p = Number(pRaw);
+                        if(isNaN(p)) return;
+                        // update buttons layout
+                        if(typeof window.updateFirstTwoButtons === 'function'){
+                            try{ window.updateFirstTwoButtons(p); }catch(e){}
+                        }
+                        goToPage(p);
+                    });
+                });
+
+                if(prevBtn){
+                    prevBtn.addEventListener('click', function(){
+                        const cur = parseInt(pageInput.value || '0', 10);
+                        if(cur > 0) goToPage(cur - 1);
+                    });
+                }
+                if(nextBtn){
+                    nextBtn.addEventListener('click', function(){
+                        const cur = parseInt(pageInput.value || '0', 10);
+                        goToPage(cur + 1);
+                    });
+                }
+
+                if(pageJumpBtn && pageJumpInput){
+                    pageJumpBtn.addEventListener('click', function(){
+                        const v = parseInt(pageJumpInput.value, 10);
+                        if(!isNaN(v)){
+                            if(typeof window.updateFirstTwoButtons === 'function'){
+                                try{ window.updateFirstTwoButtons(v - 1); }catch(e){}
+                            }
+                            goToPage(v - 1);
+                        }
+                    });
+                    pageJumpInput.addEventListener('keydown', function(e){
+                        if(e.key === 'Enter'){ e.preventDefault(); pageJumpBtn.click(); }
+                    });
+                }
+                // when user changes page size, immediately submit with page reset
+                const rowCountSelect = document.getElementById('rowCountSelect');
+                if(rowCountSelect && form && pageInput){
+                    rowCountSelect.addEventListener('change', function(){
+                        // reset to first page
+                        pageInput.value = 0;
+                        // ensure size is included in form (sync hidden or update select)
+                        if(typeof window.syncSizeToForm === 'function') window.syncSizeToForm();
+                        form.submit();
+                    });
+                }
+            })();
+        </script>
+
+
+</body>
+</html>

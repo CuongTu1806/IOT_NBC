@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Device Action</title>
+    <link rel="stylesheet" th:href="@{/css/device_action.css}">
+</head>
+<body>
+<!-- Header fragment -->
+<div th:replace="fragments/header :: header"></div>
+
+<div class="container">
+    <h2 style="margin: 5px">Device Action</h2>
+    <form id="filterForm" class="filter-bar" method="get" th:action="@{/device_action}">
+        <input type="hidden" id="pageInput" name="page" th:value="${page}" />
+
+
+        <select id="sensorSelect" name="device" th:value="${filter.device}">
+            <option value="">Device</option>
+            <option value="fan" th:selected="${filter.device == 'fan'}">Fan</option>
+            <option value="Air" th:selected="${filter.device == 'Air'}">Air Conditioner </option>
+            <option value="light" th:selected="${filter.device == 'light'}">Light</option>
+        </select>
+
+        <select id="statusSelect" name="status" th:value="${filter.status}">
+            <option value="">Status</option>
+            <option value="ON" th:selected="${filter.status == 'ON'}">ON</option>
+            <option value="OFF" th:selected="${filter.status == 'OFF'}">OFF</option>
+        </select>
+        <div class="input-group">
+            <input type="text" id="searchInput" name="inputSearch" placeholder="Nhập thông tin cần tìm kiếm" th:value="${filter.inputSearch}">
+            <div id="inputGuide" class="input-guide"></div>
+        </div>
+    <button id="searchBtn" type="submit">Search</button>
+    </form>
+
+
+    <div class="table-responsive">
+        <table id="sensorTable">
+            <thead>
+            <tr>
+                <th data-sort-field="id">ID
+                    <!-- hidden inputs for sort state (kept inside ID column as requested) -->
+                    <input type="hidden" name="sortField" th:value="${sortField}" />
+                    <input type="hidden" name="sortDir" th:value="${sortDir}" />
+                    <span class="sort-arrows" title="Sort"><span class="arrow up sort-up" data-dir="asc">▲</span><span class="arrow down sort-down" data-dir="desc">▼</span></span>
+                </th>
+                <th>Device </th>
+                <th>Status </th>
+                <th data-sort-field="timestamp">Time</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="deviceAction : ${deviceActions}">
+                <td th:text="${deviceAction.id}">1</td>
+                <td th:text="${deviceAction.device}">60</td>
+                <td th:text="${deviceAction.status}">70</td>
+                <td th:text="${#temporals.format(deviceAction.timestamp, 'yyyy-MM-dd HH:mm:ss')}"></td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(deviceActions)}">
+                <td colspan="5" style="text-align:center;">Không có dữ liệu</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+    <div class="table-footer">
+        <div class="pagination fixed-area">
+            <button type="button" id="prevBtn" th:disabled="${page == 0}">&lt;</button>
+            <span th:if="${totalPages <= 5}">
+                <button th:each="i : ${#numbers.sequence(1, totalPages)}"
+                        th:classappend="${i == page + 1} ? ' active' : ''"
+                        th:text="${i}"
+                        th:attr="data-page=${i - 1}"></button>
+            </span>
+
+            <span th:if="${totalPages > 5}">
+                <button type="button" id="pageBtn1" data-page="0">1</button>
+                <button type="button" id="pageBtn2" data-page="1">2</button>
+                <input id="pageJumpInput" type="number" min="1" th:attr="max=${totalPages}" placeholder="" style="width:50px;" />
+                <button id="pageJumpBtn" type="button">Go</button>
+                <button type="button" th:classappend="${(totalPages - 1) == page + 1} ? ' active' : ''"
+                        th:text="${totalPages - 1}"
+                        th:attr="data-page=${totalPages - 2}"></button>
+                <button type="button" th:classappend="${totalPages == page + 1} ? ' active' : ''"
+                        th:text="${totalPages}"
+                        th:attr="data-page=${totalPages - 1}"></button>
+            </span>
+            <button type="button" id="nextBtn" th:disabled="${page + 1 == totalPages}">&gt;</button>
+        </div>
+        <div class="fixed-area">
+            <div class="row-count">
+                Số dòng hiển thị
+                <select id="rowCountSelect" name="size" th:value="${size}">
+                    <option th:selected="${size == 10}" th:value="10">10</option>
+                    <option th:selected="${size == 20}" th:value="20">20</option>
+                    <option th:selected="${size == 30}" th:value="30">30</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function(){
+        const form = document.getElementById('filterForm');
+        const searchInput = document.getElementById('searchInput');
+
+        function submitWithResetPage(){
+            // ensure page parameter resets to 0 when filters change
+            const url = new URL(window.location.href);
+            url.searchParams.set('page', '0');
+            // copy current form params into url
+            const formData = new FormData(form);
+            for(const [k,v] of formData.entries()){
+                url.searchParams.set(k, v);
+            }
+            window.location.href = url.toString();
+        }
+
+        // synchronize the selected row count into the form as input[name="size"] so it's always submitted
+        function syncSizeToForm(){
+            const row = document.getElementById('rowCountSelect');
+            const f = document.getElementById('filterForm');
+            if(!f || !row) return;
+            let sizeInput = f.querySelector('input[name="size"]');
+            if(!sizeInput){
+                sizeInput = document.createElement('input');
+                sizeInput.type = 'hidden';
+                sizeInput.name = 'size';
+                f.appendChild(sizeInput);
+            }
+            sizeInput.value = row.value;
+        }
+        // expose to global so other script blocks can use it
+        window.syncSizeToForm = syncSizeToForm;
+
+        // Submit on Enter key in search input
+        if(searchInput){
+            searchInput.addEventListener('keydown', function(e){
+                if(e.key === 'Enter'){
+                    e.preventDefault();
+                    submitWithResetPage();
+                }
+            });
+        }
+
+        // Ensure clicking the Search button resets page to 0 before submit
+        const searchBtn = document.getElementById('searchBtn');
+        const pageInput = document.getElementById('pageInput');
+        if(searchBtn && pageInput){
+            searchBtn.addEventListener('click', function(){
+                pageInput.value = 0;
+                syncSizeToForm();
+            });
+        }
+    })();
+    </script>
+        <script>
+            (function(){
+                try{
+                    const form = document.getElementById('filterForm');
+                    if(!form) return;
+
+                    // Tạo/đảm bảo tồn tại các input ẩn sortField và sortDir
+                    function ensureSortInputs(){
+                        let sf = form.querySelector('input[name="sortField"]');
+                        let sd = form.querySelector('input[name="sortDir"]');
+                        if(!sf){ sf = document.createElement('input'); sf.type='hidden'; sf.name='sortField'; form.appendChild(sf); }
+                        if(!sd){ sd = document.createElement('input'); sd.type='hidden'; sd.name='sortDir'; form.appendChild(sd); }
+                        return {sf, sd};
+                    }
+
+                    function submitWithSort(field, dir){
+                        const {sf, sd} = ensureSortInputs();
+                        sf.value = field || '';
+                        sd.value = dir || '';
+                        const pageInput = document.getElementById('pageInput'); if(pageInput) pageInput.value = '0';
+                        if(typeof window.syncSizeToForm === 'function') window.syncSizeToForm();
+                        form.submit();
+                    }
+
+                    document.querySelectorAll('.sort-up').forEach(function(el){
+                        el.addEventListener('click', function(e){
+                            e.stopPropagation(); e.preventDefault();
+                            const th = el.closest('th'); if(!th) return;
+                            const field = th.getAttribute('data-sort-field'); if(!field) return;
+                            submitWithSort(field, 'asc');
+                        });
+                    });
+
+                    document.querySelectorAll('.sort-down').forEach(function(el){
+                        el.addEventListener('click', function(e){
+                            e.stopPropagation(); e.preventDefault();
+                            const th = el.closest('th'); if(!th) return;
+                            const field = th.getAttribute('data-sort-field'); if(!field) return;
+                            submitWithSort(field, 'desc');
+                        });
+                    });
+
+                }catch(e){/* ignore */}
+            })();
+        </script>
+        <script>
+            (function(){
+                const form = document.getElementById('filterForm');
+                const pageInput = document.getElementById('pageInput');
+                const prevBtn = document.getElementById('prevBtn');
+                const nextBtn = document.getElementById('nextBtn');
+            const pageJumpInput = document.getElementById('pageJumpInput');
+            const pageJumpBtn = document.getElementById('pageJumpBtn');
+
+            function goToPage(p){
+                if(!form || pageInput == null) return;
+                pageInput.value = p;
+                if(typeof window.syncSizeToForm === 'function') window.syncSizeToForm();
+                form.submit();
+            }
+
+            // page buttons (data-page attribute)
+            document.querySelectorAll('.pagination button[data-page]').forEach(btn => {
+                btn.addEventListener('click', function(e){
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const pRaw = this.getAttribute('data-page');
+                    const p = Number(pRaw);
+                    if(isNaN(p)) return;
+
+                    // determine the last page index from the data-page attributes present
+                    const pageButtons = Array.from(document.querySelectorAll('.pagination button[data-page]'))
+                        .map(b => Number(b.getAttribute('data-page')))
+                        .filter(n => !isNaN(n));
+                    const last = pageButtons.length ? Math.max(...pageButtons) : null;
+
+                    // helper to force left two to 1 and 2, using setButton to apply active class
+                    function forceLeftToOneTwo(activePage){
+                        const left1 = document.getElementById('pageBtn1');
+                        const left2 = document.getElementById('pageBtn2');
+                        if(typeof window.setButton === 'function'){
+                            if(left1) window.setButton(left1, 0, activePage);
+                            if(left2) window.setButton(left2, 1, activePage);
+                        } else {
+                            // fallback: direct DOM update
+                            const pageInputVal = Number(pageInput.value || '0');
+                            if(left1){ left1.textContent = '1'; left1.setAttribute('data-page', 0); left1.classList.toggle('active', pageInputVal === 0); }
+                            if(left2){ left2.textContent = '2'; left2.setAttribute('data-page', 1); left2.classList.toggle('active', pageInputVal === 1); }
+                        }
+                    }
+
+                    // If clicked page is one of the last two pages, force left buttons to 1 and 2
+                    if(last !== null && p >= last - 1){
+                        forceLeftToOneTwo(p);
+                    } else {
+                        // otherwise maintain the sliding behaviour
+                        if(window.updateFirstTwoButtons){
+                            try{ window.updateFirstTwoButtons(p);}catch(e){ /* ignore */ }
+                        }
+                    }
+
+                    goToPage(p);
+                });
+            });
+
+            if(prevBtn){
+                prevBtn.addEventListener('click', function(){
+                    const cur = parseInt(pageInput.value || '0', 10);
+                    if(cur > 0) goToPage(cur - 1);
+                });
+            }
+            if(nextBtn){
+                nextBtn.addEventListener('click', function(){
+                    const cur = parseInt(pageInput.value || '0', 10);
+                    goToPage(cur + 1);
+                });
+            }
+
+            if(pageJumpBtn && pageJumpInput){
+                pageJumpBtn.addEventListener('click', function(){
+                    const v = parseInt(pageJumpInput.value, 10);
+                    if(!isNaN(v)){
+                        // convert 1-based user input to 0-based page index
+                        // before navigating, update first two buttons according to rule
+                        updateFirstTwoButtons(v - 1);
+                        goToPage(v - 1);
+                    }
+                });
+                pageJumpInput.addEventListener('keydown', function(e){
+                    if(e.key === 'Enter'){
+                        e.preventDefault();
+                        pageJumpBtn.click();
+                    }
+                });
+            }
+        })();
+        // submit when row count changes (reset to first page)
+        (function(){
+            const rowCount = document.getElementById('rowCountSelect');
+            const pageInput = document.getElementById('pageInput');
+            const form = document.getElementById('filterForm');
+            if(rowCount && form && pageInput){
+                // ensure the form contains an input named 'size' so its value is submitted
+                function ensureSizeInput(){
+                    let sizeInput = form.querySelector('input[name="size"]');
+                    if(!sizeInput){
+                        sizeInput = document.createElement('input');
+                        sizeInput.type = 'hidden';
+                        sizeInput.name = 'size';
+                        form.appendChild(sizeInput);
+                    }
+                    sizeInput.value = rowCount.value;
+                }
+
+                // initialize hidden input on load
+                ensureSizeInput();
+
+                rowCount.addEventListener('change', function(){
+                    // reset to first page
+                    pageInput.value = 0;
+                    // update/ensure size hidden input so it's sent with the form
+                    ensureSizeInput();
+                    form.submit();
+                });
+            }
+        })();
+</script>
+<script th:inline="javascript">
+/*<![CDATA[*/
+    // pagination helpers: set the first two buttons so that button2 shows current page
+    (function(){
+        const pageInput = document.getElementById('pageInput');
+        const totalPages = /*[[${totalPages}]]*/ 0; // Thymeleaf will replace
+        const pageBtn1 = document.getElementById('pageBtn1');
+        const pageBtn2 = document.getElementById('pageBtn2');
+
+        function setButton(btn, pageZeroBased, activePage){
+            if(!btn) return;
+            const display = pageZeroBased + 1;
+            btn.textContent = display;
+            btn.setAttribute('data-page', pageZeroBased);
+            const active = (typeof activePage === 'number') ? activePage : parseInt(pageInput.value||'0',10);
+            btn.classList.toggle('active', active === pageZeroBased);
+        }
+
+        // expose for other script blocks
+        window.setButton = setButton;
+
+        window.updateFirstTwoButtons = function(currentZeroBased){
+            if(!pageBtn1 || !pageBtn2) return;
+            // Edge cases: if current is 0 or 1, show 1 and 2
+            if(currentZeroBased <= 1){
+                setButton(pageBtn1, 0, currentZeroBased);
+                setButton(pageBtn2, 1, currentZeroBased);
+                return;
+            }
+            // If near end: per requirement, when current is last or last-1 we want the left two to reset to 1 and 2
+            if(typeof totalPages === 'number' && totalPages > 0){
+                const last = totalPages - 1;
+                // if there are only 1 or 2 pages, show them normally
+                if(totalPages <= 2){
+                    setButton(pageBtn1, 0, currentZeroBased);
+                    setButton(pageBtn2, Math.min(1, last), currentZeroBased);
+                    return;
+                }
+                // if current is last or last-1, force left two to be 1 and 2
+                if(currentZeroBased >= last - 1){
+                    setButton(pageBtn1, 0, currentZeroBased);
+                    setButton(pageBtn2, 1, currentZeroBased);
+                    return;
+                }
+            }
+            // general case: button2 is current, button1 is previous
+            setButton(pageBtn1, currentZeroBased - 1, currentZeroBased);
+            setButton(pageBtn2, currentZeroBased, currentZeroBased);
+        }
+
+        // initialize on load
+        try{
+            const cur = parseInt(pageInput.value || '0', 10);
+            updateFirstTwoButtons(cur);
+        }catch(e){/* ignore */}
+    })();
+/*]]>*/
+</script>
+</body>
+</html>

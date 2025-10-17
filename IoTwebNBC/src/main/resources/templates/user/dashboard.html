@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard</title>
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <!-- Header fragment -->
+    <div th:replace="fragments/header :: header"></div>
+
+    <!-- hidden room element for client-side scripts to read -->
+    <span id="room" th:text="${room} ?: 'room1'" style="display:none">room1</span>
+
+    <div class="dashboard-main">
+        <h2 style="margin: 10px; padding-left: 25px;">Dashboard</h2>
+        <div class="dashboard-grid">
+            <!-- Row 1: Metric cards -->
+            <div class="dashboard-card metric-card temp-card">
+                <div class="card-title">Temperature <span>🌡️</span></div>
+                <div class="card-reading">
+                    <span class="card-value" id="temperature" th:text="${temperature} ?: '--'">--</span>
+                    <span class="card-unit">°C</span>
+                </div>
+            </div>
+            <div class="dashboard-card metric-card hum-card">
+                <div class="card-title">Humidity <span>💧</span></div>
+                <div class="card-reading">
+                    <span class="card-value" id="humidity" th:text="${humidity} ?: '--'">--</span>
+                    <span class="card-unit">%</span>
+                </div>
+            </div>
+            <div class="dashboard-card metric-card light-card">
+                <div class="card-title">Light <span>🌞</span></div>
+                <div class="card-reading">
+                    <span class="card-value" id="lightLevel" th:text="${light} ?: '--'">--</span>
+                    <span class="card-unit">Lux</span>
+                </div>
+            </div>
+            <div class="dashboard-card device-card">
+                <div class="card-title device-title">Device Control <img class="device-cloud" src="/images/cloud.png" alt="cloud"></div>
+                <div class="device-control-group">
+                    <div class="device-control-row">
+                        <span class="device-label">Điều hòa</span>
+                        <label class="switch">
+                            <input type="checkbox" id="airToggle" onchange="toggleDevice('air', this.checked)" th:checked="${state != null and state.air != null and state.air.equalsIgnoreCase('ON')}">
+                            <span class="slider"></span>
+                        </label>
+                        <img id="airIcon" class="device-icon" th:src="${state != null and state.air != null and state.air.equalsIgnoreCase('ON')} ? '/images/AirCon_Active.png' : '/images/AirCon_Not.png'" src="/images/AirCon_Not.png" alt="Air Conditioner">
+                    </div>
+                    <div class="device-control-row">
+                        <span class="device-label">Quạt</span>
+                        <label class="switch">
+                            <input type="checkbox" id="fanToggle" onchange="toggleDevice('fan', this.checked)" th:checked="${state != null and state.fan != null and state.fan.equalsIgnoreCase('ON')}">
+                            <span class="slider"></span>
+                        </label>
+                        <img id="fanIcon" class="device-icon" th:src="${state != null and state.fan != null and state.fan.equalsIgnoreCase('ON')} ? '/images/Fan_Act.png' : '/images/Fan_notAc.png'" src="/images/Fan_notAc.png" alt="Fan">
+                    </div>
+                    <div class="device-control-row">
+                        <span class="device-label">Đèn</span>
+                        <label class="switch">
+                            <input type="checkbox" id="lightToggle" onchange="toggleDevice('light', this.checked)" th:checked="${state != null and state.light != null and state.light.equalsIgnoreCase('ON')}">
+                            <span class="slider"></span>
+                        </label>
+                        <img id="lightIcon" class="device-icon" th:src="${state != null and state.light != null and state.light.equalsIgnoreCase('ON')} ? '/images/Light_act.png' : '/images/Light_notAct.png'" src="/images/Light_notAct.png" alt="Light">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row 2: Chart wrappers (only containers for now) -->
+            <div class="chart-wrapper chart-wrapper-temp-hum">
+                <div class="dashboard-chart chart-temp-hum">
+                    <canvas id="tempHumChart"></canvas>
+                </div>
+            </div>
+
+        </div>
+
+        <div id="cmdStatus" class="cmd-status" style="margin-left:25px">Chưa gửi lệnh</div>
+    </div>
+
+    
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        document.addEventListener('DOMContentLoaded', () => {
+            const url = new URL(`/api/data_sensor/stream/${document.getElementById('room').textContent || 'room1'}`, window.location.origin);
+            console.log('Connecting SSE to:', url.href);
+
+            const es = new EventSource(url.href /* , { withCredentials: true } */);
+
+            es.onopen = () => console.log('SSE open');
+
+            // nếu server không đặt name cho event thì onmessage sẽ nhận
+            es.onmessage = (e) => {
+                console.log('onmessage:', e.data);
+                try {
+                    const d = JSON.parse(e.data);
+                    update(d);
+                } catch (err) {
+                    console.warn('non-JSON message:', e.data);
+                }
+            };
+
+            // nếu server dùng .name("sensor")
+            es.addEventListener('sensor', (e) => {
+                console.log('sensor event:', e.data);
+                update(JSON.parse(e.data));
+            });
+
+            es.onerror = (e) => {
+                console.error('SSE error', e);
+                // không close, để browser auto-reconnect
+            };
+
+            // create global element references so functions outside this block (toggleDevice, updateDeviceIcon)
+            // can access them without throwing ReferenceErrors. Use window.* so they're available globally.
+            window.temperature = document.getElementById('temperature');
+            window.humidity = document.getElementById('humidity');
+            window.lightLevel = document.getElementById('lightLevel');
+            // timestamp element is optional (was previously commented out in the template); guard its usage
+            window.timestamp = document.getElementById('timestamp');
+            window.cmdStatus = document.getElementById('cmdStatus');
+            window.airIcon = document.getElementById('airIcon');
+            window.fanIcon = document.getElementById('fanIcon');
+            window.lightIcon = document.getElementById('lightIcon');
+
+            // Chart setup
+            const MAX_POINTS = 10; // giữ lại N điểm gần nhất
+
+            const tempHumCtx = document.getElementById('tempHumChart').getContext('2d');
+
+            // Prepare initial data from server (if any)
+            // latestTenForDashboard is injected server-side as an array of objects
+            const serverSeed = /*[[${latestTenForDashboard}]]*/ [];
+            // sort ascending by timestamp
+            serverSeed.sort(function(a,b){ return new Date(a.timestamp) - new Date(b.timestamp); });
+            // normalize/round incoming seed data so charts are stable:
+            // - round light values to integers (avoid tiny decimals causing big visual spikes)
+            // - ensure temperature/humidity are numbers (we'll fix axes to 0..100)
+            serverSeed.forEach(p => {
+                if(p.lightLevel != null) try{ p.lightLevel = Math.round(Number(p.lightLevel)); }catch(e){}
+                if(p.temperature != null) try{ p.temperature = Number(p.temperature); }catch(e){}
+                if(p.humidity != null) try{ p.humidity = Number(p.humidity); }catch(e){}
+            });
+            console.log('serverSeed (preloaded, normalized):', serverSeed);
+
+            const tempHumChart = new Chart(tempHumCtx, {
+                type: 'line',
+                data: {
+                    labels: serverSeed.map(p => new Date(p.timestamp).toLocaleTimeString()),
+                    datasets: [
+                        { label: 'Temperature (°C)', data: serverSeed.map(p => p.temperature), borderColor: '#e05656', backgroundColor: 'rgba(224,86,86,.25)', tension: .3, pointRadius: 3, yAxisID: 'left' },
+                        { label: 'Humidity (%)',     data: serverSeed.map(p => p.humidity),    borderColor: '#33b5ff', backgroundColor: 'rgba(51,181,255,.25)', tension: .3, pointRadius: 3, yAxisID: 'left' },
+                        { label: 'Light (Lux)',      data: serverSeed.map(p => p.lightLevel),  borderColor: '#c9a800', backgroundColor: 'rgba(201,168,0,.25)', tension: .3, pointRadius: 2, cubicInterpolationMode: 'monotone', spanGaps: true, yAxisID: 'right' }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: false,
+                    scales: {
+                        x: { ticks: { maxRotation: 50, minRotation: 50 } },
+                        // fixed 0..100 axis for temperature and humidity as requested
+                        left: { type: 'linear', position: 'left', beginAtZero: true, min: 0, max: 100, ticks: { stepSize: 10 }, grid: { drawOnChartArea: true } },
+                        // light axis: begin at 0, prefer integer ticks and allow automatic max
+                        right: { type: 'linear', position: 'right', beginAtZero: true, ticks: { precision: 0 }, grid: { drawOnChartArea: false } }
+                    },
+                    plugins: { legend: { position: 'top' } }
+                }
+            });
+
+            function pushPoint(chart, label, values) {
+                chart.data.labels.push(label);
+                // ensure each dataset gets a value (or null if not provided)
+                chart.data.datasets.forEach((ds, i) => {
+                    const v = (values && typeof values[i] !== 'undefined') ? values[i] : null;
+                    ds.data.push(v);
+                });
+                if (chart.data.labels.length > MAX_POINTS) {
+                    chart.data.labels.shift();
+                    chart.data.datasets.forEach(ds => ds.data.shift());
+                }
+                chart.update();
+            }
+
+            function fmtTime(ts) {
+                try {
+                    const d = ts ? new Date(ts) : new Date();
+                    const hh = String(d.getHours()).padStart(2,'0');
+                    const mm = String(d.getMinutes()).padStart(2,'0');
+                    const ss = String(d.getSeconds()).padStart(2,'0');
+                    return `${hh}:${mm}:${ss}`;
+                } catch { return '--:--:--'; }
+            }
+
+            // Color helpers
+            function toHex(v){
+                const h = Math.max(0, Math.min(255, Math.round(v))).toString(16);
+                return h.length===1?('0'+h):h;
+            }
+
+            // darken a hex color by fraction (0..1)
+            function darkenHex(hex, frac){
+                try{
+                    const h = hex.replace('#','');
+                    const r = parseInt(h.substring(0,2),16);
+                    const g = parseInt(h.substring(2,4),16);
+                    const b = parseInt(h.substring(4,6),16);
+                    const nr = Math.round(r * (1 - frac));
+                    const ng = Math.round(g * (1 - frac));
+                    const nb = Math.round(b * (1 - frac));
+                    return `#${toHex(nr)}${toHex(ng)}${toHex(nb)}`;
+                }catch(e){ return hex; }
+            }
+
+            // returns true if color is very dark (near black)
+            function isVeryDark(hex){
+                try{
+                    const h = hex.replace('#','');
+                    const r = parseInt(h.substring(0,2),16);
+                    const g = parseInt(h.substring(2,4),16);
+                    const b = parseInt(h.substring(4,6),16);
+                    const lum = 0.299*r + 0.587*g + 0.114*b;
+                    return lum < 40; // threshold for 'very dark'
+                }catch(e){ return false; }
+            }
+
+            function tempColor(val){
+                if(val == null) return '#888888';
+                const v = Number(val);
+                // Map 20 -> pale green/white, 40 -> dark red. Quantize into 20 steps.
+                const min = 20, max = 40;
+                let p = (v - min) / (max - min);
+                p = Math.max(0, Math.min(1, p));
+                // quantize into 20 levels
+                const steps = 20;
+                p = Math.round(p * steps) / steps;
+                // start color: pale green-white (#e8f6ef), end color: dark red (#8b0000)
+                const r1 = parseInt('e8',16), g1 = parseInt('f6',16), b1 = parseInt('ef',16);
+                const r2 = parseInt('8b',16), g2 = parseInt('00',16), b2 = parseInt('00',16);
+                const r = r1 + (r2 - r1) * p;
+                const g = g1 + (g2 - g1) * p;
+                const b = b1 + (b2 - b1) * p;
+                return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+            }
+
+            function humColor(val){
+                if(val == null) return '#888888';
+                const v = Number(val);
+                // Map 40 -> light sky-blue, 100 -> dark blue
+                const min = 40, max = 100;
+                let p = (v - min) / (max - min);
+                p = Math.max(0, Math.min(1, p));
+                // start #d9f6ff (very light sky blue), end #005fa3 (dark blue)
+                const r1 = parseInt('d9',16), g1 = parseInt('f6',16), b1 = parseInt('ff',16);
+                const r2 = parseInt('00',16), g2 = parseInt('5f',16), b2 = parseInt('a3',16);
+                const r = r1 + (r2 - r1) * p;
+                const g = g1 + (g2 - g1) * p;
+                const b = b1 + (b2 - b1) * p;
+                return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+            }
+
+            function lightColor(val){
+                if(val == null) return '#888888';
+                const v = Number(val);
+                // New mapping per user request:
+                // 0..70: black -> white (interpolate)
+                // >=70: white -> golden (#ffd200) (interpolate up to a cap)
+                if(v <= 0) return '#000000';
+                if(v <= 70){
+                    const p = Math.max(0, Math.min(1, v / 70));
+                    const r = 0 + (255 - 0) * p;
+                    const g = 0 + (255 - 0) * p;
+                    const b = 0 + (255 - 0) * p;
+                    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+                }
+                // v > 70: interpolate from white -> golden (#ffd200)
+                const start = 70;
+                const cap = 2000; // reasonable cap for interpolation
+                const p2 = Math.max(0, Math.min(1, (v - start) / (cap - start)));
+                const r1 = 255, g1 = 255, b1 = 255; // white
+                const r2 = parseInt('ff',16), g2 = parseInt('d2',16), b2 = parseInt('00',16); // #ffd200
+                const r = r1 + (r2 - r1) * p2;
+                const g = g1 + (g2 - g1) * p2;
+                const b = b1 + (b2 - b1) * p2;
+                return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+            }
+
+            function applyColors(t,h,lx){
+                // Apply color as background to the metric cards and keep number text contrasted
+                try{
+                    const tempCardEl = document.querySelector('.temp-card');
+                    const humCardEl = document.querySelector('.hum-card');
+                    const lightCardEl = document.querySelector('.light-card');
+                    const tempValEl = document.getElementById('temperature');
+                    const humValEl = document.getElementById('humidity');
+                    const lightValEl = document.getElementById('lightLevel');
+
+                    if(tempCardEl){
+                        const c = (t != null) ? tempColor(t) : '#f0f0f0';
+                        tempCardEl.style.background = c;
+                        // border slightly darker
+                        tempCardEl.style.borderColor = c;
+                        if(tempValEl) tempValEl.style.color = getContrastColor(c);
+                    }
+                    if(humCardEl){
+                        const c = (h != null) ? humColor(h) : '#f0f0f0';
+                        humCardEl.style.background = c;
+                        humCardEl.style.borderColor = c;
+                        if(humValEl) humValEl.style.color = getContrastColor(c);
+                    }
+                    if(lightCardEl){
+                        const c = (lx != null) ? lightColor(lx) : '#f0f0f0';
+                        lightCardEl.style.background = c;
+                        // use a slightly darker border for better visibility
+                        lightCardEl.style.borderColor = darkenHex(c, 0.12);
+                        if(lightValEl) {
+                            // when the background is very dark (black-ish), force white text for readability
+                            const forced = isVeryDark(c) ? '#ffffff' : getContrastColor(c);
+                            lightValEl.style.color = forced;
+                        }
+                    }
+                }catch(e){ console.error(e); }
+            }
+
+            // choose black/white text depending on background luminance
+            function getContrastColor(hex){
+                try{
+                    // strip #
+                    const h = hex.replace('#','');
+                    const r = parseInt(h.substring(0,2),16);
+                    const g = parseInt(h.substring(2,4),16);
+                    const b = parseInt(h.substring(4,6),16);
+                    const lum = 0.299*r + 0.587*g + 0.114*b;
+                    return lum > 186 ? '#000000' : '#ffffff';
+                }catch(e){ return '#000'; }
+            }
+
+            function update(d) {
+                // chấp nhận cả hai kiểu tên field
+                const t  = d.temperature ?? d.temp;
+                const h  = d.humidity    ?? d.hum;
+                const lx = d.lightLevel  ?? d.lux;
+                const ts = d.timestamp   ?? d.ts;
+
+                if (t != null && window.temperature) window.temperature.textContent = t;
+                if (h != null && window.humidity) window.humidity.textContent = h;
+                if (lx != null && window.lightLevel) window.lightLevel.textContent = lx;
+                if (window.timestamp) window.timestamp.textContent = ts ?? '--';
+
+                const label = fmtTime(ts);
+                // push combined point: [temp, humidity, light]
+                pushPoint(tempHumChart, label, [t != null ? t : null, h != null ? h : null, lx != null ? lx : null]);
+                // apply colors on each update
+                applyColors(t, h, lx);
+            }
+
+
+            // apply initial colors from last server seed
+            (function(){
+                const last = serverSeed.length ? serverSeed[serverSeed.length - 1] : null;
+                if(last){
+                    const lt = last.temperature ?? last.temp;
+                    const lh = last.humidity ?? last.hum;
+                    const ll = last.lightLevel ?? last.lux;
+                    applyColors(lt, lh, ll);
+                }
+            })();
+
+            // ...existing code... (no device-state refresh on load)
+        });
+
+        async function toggleDevice(device, isOn) {
+            const room = 'room1';
+            const action = isOn ? 'on' : 'off';
+            const url = `/dashboard/command?room=${room}&device=${device}&action=${action}`;
+
+            const statusEl = document.getElementById('cmdStatus');
+            if (statusEl) statusEl.textContent = `Đang gửi: ${device} -> ${action}...`;
+
+            try {
+                const res  = await fetch(url, { method: 'POST' });
+                const data = await res.json().catch(() => ({}));
+                if (statusEl) statusEl.textContent = res.ok
+                    ? `OK: ${device} -> ${action} (${data.status ?? ''})`
+                    : `Lỗi ${res.status}`;
+                // Cập nhật icon tương ứng theo trạng thái
+                updateDeviceIcon(device, isOn);
+            } catch (e) {
+                if (statusEl) statusEl.textContent = 'Gửi lệnh thất bại!';
+                console.error(e);
+            }
+        }
+
+        function updateDeviceIcon(device, isOn) {
+            const ids = { air: 'airIcon', fan: 'fanIcon', light: 'lightIcon' };
+            const paths = {
+                air:   { on: '/images/AirCon_Active.png', off: '/images/AirCon_Not.png' },
+                fan:   { on: '/images/Fan_Act.png',       off: '/images/Fan_notAc.png' },
+                light: { on: '/images/Light_act.png',     off: '/images/Light_notAct.png' }
+            };
+            const elId = ids[device];
+            const imgEl = elId ? document.getElementById(elId) : null;
+            if (!imgEl) return;
+            imgEl.classList.remove('active','inactive');
+            // hiệu ứng mờ dần rồi đổi ảnh
+            imgEl.style.opacity = '0';
+            setTimeout(() => {
+                const p = paths[device];
+                if (!p) return;
+                imgEl.src = isOn ? p.on : p.off;
+                imgEl.style.opacity = '1';
+                imgEl.classList.add(isOn ? 'active' : 'inactive');
+            }, 120);
+        }
+        /*]]>*/
+    </script>
+</body>
+</html>
+

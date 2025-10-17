@@ -1,0 +1,17 @@
+<div th:fragment="header">
+  <div class="header-bar">
+    <header class="topbar" style="width:100%;">
+      <link rel="stylesheet" href="/css/header.css" />
+      <div class="logo">
+        <a class="logo-text" th:href="@{/dashboard/room1}">My App</a>
+      </div>
+      <nav class="nav header-nav">
+        <a th:href="@{/dashboard}" th:classappend="${#httpServletRequest != null and #httpServletRequest.requestURI.contains('/dashboard')} ? ' active' : ''">Dashboard</a>
+        <a th:href="@{/data_sensor}" th:classappend="${#httpServletRequest != null and #httpServletRequest.requestURI.contains('/data_sensor')} ? ' active' : ''">Data Sensor</a>
+        <a th:href="@{/device_action}" th:classappend="${#httpServletRequest != null and #httpServletRequest.requestURI.contains('/device_action')} ? ' active' : ''">Device Action</a>
+        <a th:href="@{/profile}" th:classappend="${#httpServletRequest != null and #httpServletRequest.requestURI.contains('/profile')} ? ' active' : ''">Profile</a>
+      </nav>
+    </header>
+    <!-- header styles moved to /css/header.css -->
+  </div>
+</div>

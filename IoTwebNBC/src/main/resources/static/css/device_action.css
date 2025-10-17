@@ -1,0 +1,166 @@
+/* Basic reset for the device action page */
+body {
+	font-family: 'Segoe UI', Arial, sans-serif;
+	margin: 0;
+	padding: 0;
+	color: #222;
+	background: #ffffff;
+}
+
+/* Header fragment alignment fix */
+.header-container {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	background: #2c7bcf;
+	color: #fff;
+	padding: 12px 20px;
+}
+.header-container .nav {
+	display: flex;
+	gap: 24px;
+	align-items: center;
+}
+
+.container {
+	max-width: 1100px;
+	margin: 10px auto;
+	padding: 12px 24px;
+	background: #fff;
+	border-radius: 6px;
+}
+
+/* Filter bar layout */
+.filter-bar {
+	display: flex;
+	gap: 10px;
+	align-items: center;
+	flex-wrap: wrap;
+	margin-bottom: 12px;
+}
+.filter-bar select,
+.filter-bar input[type="text"] {
+	padding: 6px 12px;
+	border: 1px solid #bbb;
+	border-radius: 4px;
+	font-size: 15px;
+	background: #f8f8f8;
+	outline: none;
+	transition: border 0.2s;
+}
+.filter-bar button[type="submit"]{
+	padding: 7px 18px;
+	background: #fff;
+	border: 1.5px solid #1976d2;
+	color: #1976d2;
+	border-radius: 4px;
+	font-size: 15px;
+	cursor: pointer;
+}
+
+/* Table styling */
+/* table container with scrollable body. Keep table as a table to maintain column alignment */
+/* table container with scrollable body and nicer spacing like data_sensor */
+.table-responsive {
+	overflow-x: auto;
+	margin-bottom: 10px;
+	background: #fff;
+	border-radius: 6px;
+	border: 1px solid #bccedf;
+	max-height: 65vh;
+	overflow-y: auto;
+}
+
+#sensorTable {
+	width: 100%;
+	border-collapse: collapse;
+	background: #fff;
+	font-size: 15px;
+}
+
+#sensorTable th, #sensorTable td {
+	border: 1px solid #bccedf;
+	padding: 10px 14px;
+	text-align: center;
+	vertical-align: middle;
+}
+
+#sensorTable th {
+	background: #f5f7fb;
+	color: #1976d2;
+	font-weight: 600;
+	cursor: pointer;
+	user-select: none;
+	position: sticky;
+	top: 0;
+	z-index: 2;
+}
+
+/* Sort arrows in headers: match data_sensor look (small, faint) */
+.sort-arrows {
+	display: inline-flex;
+	flex-direction: column;
+	margin-left: 8px;
+	font-size: 0.7em;
+	vertical-align: middle;
+	line-height: 1;
+	opacity: 0.7;
+}
+.sort-arrows .arrow {
+	display: block;
+	width: 1em;
+	text-align: center;
+	color: #8aaad8;
+	transition: color 0.12s, transform 0.12s;
+}
+.sort-arrows .arrow.up { transform: translateY(-1px); }
+.sort-arrows .arrow.down { transform: translateY(1px); }
+.sort-arrows .arrow:hover { color: #195bb5; }
+
+/* Indicate active sort state with .sorted-asc / .sorted-desc on th */
+th.sorted-asc .sort-arrows .arrow.up { color: #195bb5; font-weight: 700; }
+th.sorted-desc .sort-arrows .arrow.down { color: #195bb5; font-weight: 700; }
+
+@media (max-width: 640px) {
+	.sort-arrows { display: none; }
+}
+
+#sensorTable tbody tr:nth-child(even) { background: #f8fafd; }
+#sensorTable tbody tr:hover { background: #e3f0fc; }
+
+/* Pagination styling */
+.table-footer {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-top: 8px;
+	font-size: 15px;
+}
+
+.pagination { display: flex; gap: 4px; align-items: center; }
+
+.pagination button {
+	background: #fff;
+	border: 1px solid #bbb;
+	color: #1976d2;
+	border-radius: 3px;
+	padding: 3px 9px;
+	font-size: 15px;
+	cursor: pointer;
+	transition: background 0.2s, color 0.2s;
+}
+
+.pagination button.active,
+.pagination button:hover { background: #1976d2; color: #fff; border-color: #1976d2; }
+
+.row-count { display: flex; align-items: center; gap: 5px; }
+
+.row-count select { padding: 3px 7px; border-radius: 3px; border: 1px solid #bbb; font-size: 15px; background: #f8f8f8; }
+
+.fixed-area { display:flex; align-items:center; gap: 12px; }
+
+@media (max-width: 700px){
+	.filter-bar{ flex-direction: column; align-items: stretch; }
+	.table-footer{ flex-direction: column; gap:8px; align-items:flex-start }
+}
+
