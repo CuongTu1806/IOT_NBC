@@ -24,9 +24,15 @@ public class DeviceActionServiceImpl implements DeviceActionService {
 
     @Override
     public DeviceStateDTO findState() {
-        String air = deviceActionRepository.findFirstByDeviceOrderByIdDesc("air").getStatus();
-        String fan = deviceActionRepository.findFirstByDeviceOrderByIdDesc("fan").getStatus();
-        String light = deviceActionRepository.findFirstByDeviceOrderByIdDesc("light").getStatus();
+        DeviceActionEntity airEntity = deviceActionRepository.findFirstByDeviceOrderByIdDesc("air");
+        DeviceActionEntity fanEntity = deviceActionRepository.findFirstByDeviceOrderByIdDesc("fan");
+        DeviceActionEntity lightEntity = deviceActionRepository.findFirstByDeviceOrderByIdDesc("light");
+        
+        String air = airEntity != null ? airEntity.getStatus() : "OFF";
+        String fan = fanEntity != null ? fanEntity.getStatus() : "OFF";
+        String light = lightEntity != null ? lightEntity.getStatus() : "OFF";
+        
+        System.out.println("findState() - air: " + air + ", fan: " + fan + ", light: " + light);
 
         DeviceStateDTO state = new DeviceStateDTO();
         state.setAir(air);

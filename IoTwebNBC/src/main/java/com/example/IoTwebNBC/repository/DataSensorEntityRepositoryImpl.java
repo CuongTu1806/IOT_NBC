@@ -25,7 +25,7 @@ public class DataSensorEntityRepositoryImpl implements DataSensorRepositoryCusto
 
     @Override
     public Page<DataSensorEntity> findByFilter(String sensor, String inputSearch, Pageable pageable) {
-        String jpql = " SELECT d.id, d.room, d.temperature, d.humidity, d.light_level, d.timestamp FROM datasensor d ";
+        String jpql = " SELECT d.id, d.room, d.temperature, d.humidity, d.light_level, d.rain, d.windy, d.timestamp FROM datasensor d ";
         String where = " Where 1 = 1";
         if(sensor != null && !sensor.isEmpty() ) {
             if(inputSearch != null && !inputSearch.isEmpty() ) {
@@ -45,13 +45,13 @@ public class DataSensorEntityRepositoryImpl implements DataSensorRepositoryCusto
                     where +=" AND ( d.id = " + inputSearch + " " +
                             "OR d.temperature = " + inputSearch + " " +
                             "OR d.humidity = " + inputSearch + " " +
-                            "OR d.light_level = " + inputSearch + " )";
+                            "OR d.light_level = " + inputSearch + " " +
+                            "OR d.rain = " + inputSearch + " " +
+                            "OR d.windy = " + inputSearch + " )";
                 }
             }
         }
         jpql += where;
-
-        // Determine ORDER BY from pageable's sort if present; default to timestamp desc
         String orderBy = "d.timestamp DESC";
         try{
             if(pageable != null && pageable.getSort() != null && pageable.getSort().isSorted()){
@@ -66,6 +66,8 @@ public class DataSensorEntityRepositoryImpl implements DataSensorRepositoryCusto
                     case "temperature": column = "d.temperature"; break;
                     case "humidity": column = "d.humidity"; break;
                     case "lightLevel": column = "d.light_level"; break;
+                    case "rain": column = "d.rain"; break;
+                    case "windy": column = "d.windy"; break;
                     case "timestamp": column = "d.timestamp"; break;
                     default: column = "d.timestamp"; break; // fallback
                 }

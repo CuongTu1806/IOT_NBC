@@ -25,6 +25,9 @@ public interface DataSensorEntityRepository extends JpaRepository<DataSensorEnti
   """)
     List<DataSensorEntity> findLatest(@Param("roomId") String room, Pageable pageable);
 
+    @Query(value = "SELECT * FROM datasensor WHERE room = :room ORDER BY timestamp DESC LIMIT 1", nativeQuery = true)
+    Optional<DataSensorEntity> findLatestByRoomNative(@Param("room") String room);
+
     Optional<DataSensorEntity> findFirstByRoomOrderByTimestampDesc(String room);
     Optional<DataSensorEntity> findFirstByRoomOrderByIdDesc(String room);
     List<DataSensorEntity> findByRoomOrderByIdDesc(String room);

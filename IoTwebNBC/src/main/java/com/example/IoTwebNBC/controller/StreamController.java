@@ -29,7 +29,6 @@ public class StreamController {
     public SseEmitter stream() {
     // room fixed to room1 in mapping
         SseEmitter emitter = new SseEmitter(0L); // không timeout
-
         emitter.onError(e -> {
             System.out.println("SSE error: " + e);
         });
@@ -41,31 +40,40 @@ public class StreamController {
         });
 
         // Gửi snapshot ngay khi connect (nếu có)
-        repo.findFirstByRoomOrderByIdDesc("room1").ifPresent(e -> {
+        repo.findLatestByRoomNative("room1").ifPresent(e -> {
             try {
+                System.out.println("SSE initial send - ID: " + e.getId() + ", Rain: " + e.getRain() + ", Windy: " + e.getWindy());
                 emitter.send(SseEmitter.event().name("sensor").data(e));
             } catch (IOException ex) {
                 emitter.completeWithError(ex);
             }
         });
 
-        // Poll DB periodically and send record; keep the ScheduledFuture so we can cancel when emitter ends
         final ScheduledFuture<?> task = scheduler.scheduleAtFixedRate(() -> {
             try {
-                repo.findFirstByRoomOrderByIdDesc("room1").ifPresent(e -> {
+                var latest = repo.findLatestByRoomNative("room1");
+                if (latest.isPresent()) {
+                    var e = latest.get();
+                    System.out.println("SSE polling - ID: " + e.getId() + 
+                                     ", Timestamp: " + e.getTimestamp() + 
+                                     ", Rain: " + e.getRain() + 
+                                     ", Windy: " + e.getWindy());
                     try {
                         emitter.send(SseEmitter.event().name("sensor").data(e));
                     } catch (IOException ex) {
                         // if a send fails, complete emitter and cancel task
                         try { emitter.completeWithError(ex); } catch (Exception ignore) {}
                     }
-                });
+                } else {
+                    System.out.println("SSE polling - No data found for room1");
+                }
             } catch (Exception ex) {
+                System.err.println("SSE polling error: " + ex.getMessage());
+                ex.printStackTrace();
                 try { emitter.completeWithError(ex); } catch (Exception ignore) {}
             }
         }, 1, 2, TimeUnit.SECONDS);
 
-        // Cancel scheduled task when emitter stops to avoid sending to closed emitters
         emitter.onCompletion(() -> {
             try { task.cancel(true); } catch (Exception ignored) {}
             System.out.println("SSE task cancelled on completion");

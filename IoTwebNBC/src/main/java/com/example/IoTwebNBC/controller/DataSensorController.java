@@ -35,16 +35,16 @@ public class DataSensorController {
                         @RequestParam(name = "sortField", required = false) String sortField,
                         @RequestParam(name = "sortDir", required = false) String sortDir) {
 
-            // Build pageable: allow single-column sorting if provided; otherwise default to timestamp desc
             Pageable pageable;
             if(sortField != null && !sortField.isBlank()){
-                // Whitelist map from requested field to entity property / DB column name
                 String prop;
                 switch(sortField){
                     case "id": prop = "id"; break;
                     case "temperature": prop = "temperature"; break;
                     case "humidity": prop = "humidity"; break;
                     case "lightLevel": prop = "lightLevel"; break;
+                    case "rain": prop = "rain"; break;
+                    case "windy": prop = "windy"; break;
                     case "timestamp": prop = "timestamp"; break;
                     default: prop = null; break;
                 }

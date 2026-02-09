@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8" />
+    <title>UC03 - Phê duyệt lịch chiếu (Demo)</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+        body {
+            margin: 0;
+            background: #f3f4f6;
+            color: #111827;
+        }
+        header {
+            padding: 12px 24px;
+            background: #111827;
+            color: #f9fafb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        header h1 {
+            margin: 0;
+            font-size: 18px;
+        }
+        header .sub {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+        main {
+            padding: 16px 24px 32px;
+        }
+        .layout {
+            display: grid;
+            grid-template-columns: minmax(260px, 1.1fr) minmax(0, 2fr);
+            gap: 16px;
+        }
+        @media (max-width: 900px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+        }
+        .card {
+            background: #ffffff;
+            border-radius: 14px;
+            padding: 12px 14px 16px;
+            box-shadow: 0 1px 6px rgba(15, 23, 42, 0.08);
+        }
+        .card h2 {
+            font-size: 15px;
+            margin: 0 0 8px;
+        }
+        .card h3 {
+            font-size: 14px;
+            margin: 0 0 6px;
+        }
+        .small {
+            font-size: 12px;
+            color: #6b7280;
+        }
+        .pending-list {
+            margin-top: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            max-height: 420px;
+            overflow-y: auto;
+        }
+        .pending-item {
+            border-radius: 10px;
+            border: 1px solid #e5e7eb;
+            padding: 8px 10px;
+            font-size: 12px;
+            cursor: pointer;
+            background: #f9fafb;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .pending-item:hover {
+            background: #eef2ff;
+        }
+        .pending-item.active {
+            border-color: #111827;
+            background: #e5e7ff;
+        }
+        .pill-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            border-radius: 999px;
+            padding: 2px 8px;
+            font-size: 11px;
+            background: #fef3c7;
+            color: #92400e;
+            margin-left: 4px;
+        }
+        .pill-approved {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .pill-rejected {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+        .meta-line {
+            font-size: 11px;
+            color: #4b5563;
+        }
+        .split {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 8px;
+        }
+        .subcard {
+            border-radius: 10px;
+            border: 1px solid #e5e7eb;
+            padding: 8px 10px;
+            font-size: 12px;
+            background: #f9fafb;
+        }
+        .subcard-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .field-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 2px;
+        }
+        .field-label {
+            color: #6b7280;
+        }
+        .field-value {
+            font-weight: 500;
+        }
+        .field-change {
+            font-size: 11px;
+            color: #b91c1c;
+        }
+        .actions {
+            margin-top: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .btn {
+            border-radius: 999px;
+            border: 1px solid #d1d5db;
+            padding: 6px 14px;
+            font-size: 13px;
+            background: #fff;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.15s ease;
+        }
+        .btn-primary {
+            background: #111827;
+            border-color: #111827;
+            color: #f9fafb;
+        }
+        .btn-danger {
+            border-color: #b91c1c;
+            color: #b91c1c;
+            background: #fff7f7;
+        }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(15, 23, 42, 0.2);
+        }
+        .reason-box {
+            margin-top: 8px;
+            display: none;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .reason-box textarea {
+            width: 100%;
+            min-height: 70px;
+            padding: 6px 8px;
+            border-radius: 8px;
+            border: 1px solid #d1d5db;
+            font-size: 12px;
+            resize: vertical;
+        }
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            border-radius: 999px;
+            padding: 2px 8px;
+            font-size: 10px;
+            background: #eef2ff;
+            color: #3730a3;
+        }
+        .toast {
+            position: fixed;
+            right: 16px;
+            bottom: 16px;
+            background: #111827;
+            color: #f9fafb;
+            padding: 8px 12px;
+            border-radius: 10px;
+            font-size: 12px;
+            box-shadow: 0 3px 12px rgba(15,23,42,0.45);
+            opacity: 0;
+            transform: translateY(10px);
+            pointer-events: none;
+            transition: all 0.2s ease;
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <div>
+        <h1>UC03 - Phê duyệt lịch chiếu (Demo)</h1>
+        <div class="sub">Actor: Quản lý cụm rạp – mô phỏng luồng xem danh sách, xem chi tiết, so sánh, phê duyệt / từ chối.</div>
+    </div>
+    <span class="badge">ROLE: Quản lý cụm rạp</span>
+</header>
+
+<main>
+    <div class="layout">
+        <!-- Cột trái: danh sách lịch chờ duyệt -->
+        <section class="card">
+            <h2>Lịch chờ phê duyệt</h2>
+            <div class="small">Chọn 1 dòng để xem chi tiết và phê duyệt.</div>
+            <div id="pendingList" class="pending-list"></div>
+        </section>
+
+        <!-- Cột phải: chi tiết & so sánh -->
+        <section class="card">
+            <h2>Chi tiết đề xuất & so sánh</h2>
+            <div id="detailEmpty" class="small">
+                Chưa chọn lịch nào. Vui lòng chọn một lịch ở bên trái.
+            </div>
+
+            <div id="detailArea" style="display:none;">
+                <div class="meta-line" id="detailHeader"></div>
+
+                <div class="split">
+                    <div class="subcard" id="currentCard">
+                        <div class="subcard-title">Lịch hiện tại</div>
+                        <div id="currentInfo"></div>
+                    </div>
+                    <div class="subcard" id="proposedCard">
+                        <div class="subcard-title">Lịch đề xuất</div>
+                        <div id="proposedInfo"></div>
+                    </div>
+                </div>
+
+                <div class="actions">
+                    <button id="btnApprove" class="btn btn-primary">
+                        ✔ Phê duyệt
+                    </button>
+                    <button id="btnReject" class="btn btn-danger">
+                        ✖ Từ chối & ghi lý do
+                    </button>
+                </div>
+
+                <div id="reasonBox" class="reason-box">
+                    <label for="reasonInput" class="small">
+                        Nhập lý do từ chối (extension point "Từ chối và ghi lý do"):
+                    </label>
+                    <textarea id="reasonInput" placeholder="Ví dụ: Trùng khung giờ với suất khác, đề nghị chuyển sang 21:30..."></textarea>
+                    <div class="actions">
+                        <button id="btnSubmitReject" class="btn btn-danger">
+                            Gửi từ chối
+                        </button>
+                        <button id="btnCancelReject" class="btn">
+                            Hủy
+                        </button>
+                    </div>
+                </div>
+
+                <div id="decisionInfo" class="small" style="margin-top:8px;"></div>
+            </div>
+        </section>
+    </div>
+</main>
+
+<div id="toast" class="toast"></div>
+
+<script>
+    // ====== DỮ LIỆU DEMO ======
+    const pendingData = [
+        {
+            id: 1,
+            cinema: "XYZ Time City",
+            room: "Phòng 1",
+            movie: "DUNE: PHẦN HAI",
+            oldTime: "19:00",
+            newTime: "20:00",
+            date: "2025-12-22",
+            status: "PENDING",
+            decisionNote: ""
+        },
+        {
+            id: 2,
+            cinema: "XYZ Vincom Bà Triệu",
+            room: "Phòng 2",
+            movie: "MAI",
+            oldTime: "Không có suất",
+            newTime: "18:30",
+            date: "2025-12-22",
+            status: "PENDING",
+            decisionNote: ""
+        },
+        {
+            id: 3,
+            cinema: "XYZ Royal City",
+            room: "Phòng 3",
+            movie: "CONAN: TÀU NGẦM SẮT MÀU ĐEN",
+            oldTime: "21:00",
+            newTime: "21:15",
+            date: "2025-12-22",
+            status: "PENDING",
+            decisionNote: ""
+        }
+    ];
+
+    let selectedId = null;
+    const listEl = document.getElementById("pendingList");
+    const detailArea = document.getElementById("detailArea");
+    const detailEmpty = document.getElementById("detailEmpty");
+    const detailHeader = document.getElementById("detailHeader");
+    const currentInfo = document.getElementById("currentInfo");
+    const proposedInfo = document.getElementById("proposedInfo");
+    const btnApprove = document.getElementById("btnApprove");
+    const btnReject = document.getElementById("btnReject");
+    const reasonBox = document.getElementById("reasonBox");
+    const reasonInput = document.getElementById("reasonInput");
+    const btnSubmitReject = document.getElementById("btnSubmitReject");
+    const btnCancelReject = document.getElementById("btnCancelReject");
+    const decisionInfo = document.getElementById("decisionInfo");
+    const toast = document.getElementById("toast");
+
+    // ====== HÀM HỖ TRỢ ======
+    function showToast(msg) {
+        toast.textContent = msg;
+        toast.classList.add("show");
+        setTimeout(() => toast.classList.remove("show"), 2000);
+    }
+
+    function renderList() {
+        listEl.innerHTML = "";
+        pendingData.forEach(item => {
+            const div = document.createElement("div");
+            div.className = "pending-item";
+            if (item.id === selectedId) div.classList.add("active");
+            div.addEventListener("click", () => {
+                selectedId = item.id;
+                renderList();
+                renderDetail();
+            });
+
+            const title = document.createElement("div");
+            title.innerHTML = `<strong>${item.movie}</strong> - ${item.cinema}`;
+            div.appendChild(title);
+
+            const meta = document.createElement("div");
+            meta.className = "meta-line";
+            meta.textContent = `${item.date} • ${item.room}`;
+            div.appendChild(meta);
+
+            const status = document.createElement("div");
+            status.className = "meta-line";
+
+            if (item.status === "APPROVED") {
+                status.innerHTML = `Trạng thái: <span class="pill-status pill-approved">Đã phê duyệt</span>`;
+            } else if (item.status === "REJECTED") {
+                status.innerHTML = `Trạng thái: <span class="pill-status pill-rejected">Bị từ chối</span>`;
+            } else {
+                status.innerHTML = `Trạng thái: <span class="pill-status">Chờ phê duyệt</span>`;
+            }
+
+            div.appendChild(status);
+            listEl.appendChild(div);
+        });
+    }
+
+    function renderDetail() {
+        const item = pendingData.find(x => x.id === selectedId);
+        if (!item) {
+            detailArea.style.display = "none";
+            detailEmpty.style.display = "block";
+            return;
+        }
+        detailArea.style.display = "block";
+        detailEmpty.style.display = "none";
+        reasonBox.style.display = "none";
+        reasonInput.value = "";
+        decisionInfo.textContent = "";
+
+        detailHeader.textContent =
+            `Rạp: ${item.cinema} • ${item.room} • Ngày: ${item.date}`;
+
+        currentInfo.innerHTML = `
+            <div class="field-row">
+                <span class="field-label">Phim:</span>
+                <span class="field-value">${item.movie}</span>
+            </div>
+            <div class="field-row">
+                <span class="field-label">Giờ chiếu:</span>
+                <span class="field-value">${item.oldTime}</span>
+            </div>
+        `;
+
+        const timeChanged = item.oldTime !== item.newTime;
+        proposedInfo.innerHTML = `
+            <div class="field-row">
+                <span class="field-label">Phim:</span>
+                <span class="field-value">${item.movie}</span>
+            </div>
+            <div class="field-row">
+                <span class="field-label">Giờ đề xuất:</span>
+                <span class="field-value">${item.newTime}</span>
+            </div>
+            ${timeChanged ? `<div class="field-change">Giờ chiếu đã thay đổi so với lịch hiện tại.</div>` : ""}
+        `;
+
+        // cập nhật trạng thái nút
+        const disabled = item.status !== "PENDING";
+        btnApprove.disabled = disabled;
+        btnReject.disabled = disabled;
+
+        if (item.status === "APPROVED") {
+            decisionInfo.textContent = "Lịch này đã được phê duyệt trước đó.";
+        } else if (item.status === "REJECTED") {
+            decisionInfo.textContent = "Lịch này đã bị từ chối. Lý do: " + (item.decisionNote || "(không có).");
+        }
+    }
+
+    // ====== EVENT HANDLERS ======
+    btnApprove.addEventListener("click", () => {
+        const item = pendingData.find(x => x.id === selectedId);
+        if (!item || item.status !== "PENDING") return;
+        item.status = "APPROVED";
+        item.decisionNote = "";
+        showToast("Đã phê duyệt lịch chiếu.");
+        renderList();
+        renderDetail();
+    });
+
+    btnReject.addEventListener("click", () => {
+        const item = pendingData.find(x => x.id === selectedId);
+        if (!item || item.status !== "PENDING") return;
+        reasonBox.style.display = "flex";
+        reasonInput.focus();
+    });
+
+    btnCancelReject.addEventListener("click", () => {
+        reasonBox.style.display = "none";
+        reasonInput.value = "";
+    });
+
+    btnSubmitReject.addEventListener("click", () => {
+        const item = pendingData.find(x => x.id === selectedId);
+        if (!item || item.status !== "PENDING") return;
+        const reason = reasonInput.value.trim();
+        if (!reason) {
+            showToast("Vui lòng nhập lý do từ chối.");
+            return;
+        }
+        item.status = "REJECTED";
+        item.decisionNote = reason;
+        showToast("Đã từ chối lịch chiếu và lưu lý do.");
+        reasonBox.style.display = "none";
+        renderList();
+        renderDetail();
+    });
+
+    // ====== INIT ======
+    renderList();
+</script>
+<div style="padding: 0 24px 24px; font-size: 11px; color:#6b7280;">
+    <strong>Gợi ý ghi vào báo cáo:</strong> Màn hình này minh họa flow UC03:<br/>
+    – Bắt buộc: xem danh sách, xem chi tiết, so sánh lịch (luồng chính).<br/>
+    – Tùy chọn (extend): khi chọn "Từ chối" thì xuất hiện phần nhập lý do.
+</div>
+</body>
+</html>

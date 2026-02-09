@@ -21,15 +21,15 @@ body {
 
 .dashboard-grid {
     display: grid;
-    grid-template-columns: minmax(240px, 1.1fr) minmax(240px, 1.1fr) minmax(320px, 1.55fr) minmax(320px, 1.6fr);
+    grid-template-columns: repeat(5, minmax(170px, 1fr)) minmax(400px, 1.8fr);
     grid-template-rows: auto auto; /* avoid stretching second row */
     grid-template-areas:
-        "temp hum light device"
-        "chartTH chartTH chartTH device";
-    gap: 12px;
+        "temp hum light rain windy device"
+        "chartTH chartTH chartTH chartTH chartTH device";
+    gap: 14px;
     margin: 0 auto;
-    width: 96vw;
-    max-width: 1800px;
+    width: 98vw;
+    max-width: 2000px;
     align-items: stretch;
     height: 100%;
 }
@@ -38,12 +38,12 @@ body {
     flex: 1 1 0;
     border-radius: 16px;
     box-shadow: 0 1px 8px rgba(0,0,0,0.07);
-    padding: 8px 0 8px 0;
+    padding: 10px 8px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    min-width: 220px;
-    min-height: 44px;
+    min-width: 170px;
+    min-height: 50px;
     justify-content: center;
     border: 3px solid rgba(0,0,0,0.08); /* slightly stronger, subtle default border */
     transition: box-shadow 0.2s;
@@ -67,17 +67,29 @@ body {
     grid-area: light;
     max-height: 56px;
 }
+.rain-card {
+    background: #b3d9ff;
+    border-color: #4a90e2;
+    grid-area: rain;
+    max-height: 56px;
+}
+.windy-card {
+    background: #d5d8dc;
+    border-color: #95a5a6;
+    grid-area: windy;
+    max-height: 56px;
+}
 .device-card {
     background: #378DFE;
     border-color: #378DFE;
     color: #fff;
-    min-width: 260px;
+    min-width: 360px;
     min-height: 200px;
     align-items: stretch;
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
-    padding: 14px 0 0 0;
+    padding: 16px 0 0 0;
     grid-area: device;
     align-self: start; /* keep content at top to avoid stretched feel */
 }
@@ -121,27 +133,71 @@ body {
 .device-control-group {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 18px;
     margin-bottom: 8px;
     align-items: stretch;
-    padding: 0 16px;
+    padding: 0 20px;
     flex: initial; /* don't force stretching */
     justify-content: flex-start; /* stack items naturally */
-    height: 425px;
+    min-height: 420px;
 }
 
 .device-control-row {
     display: flex;
     align-items: center;
-    justify-content: center;      /* gom cụm vào giữa */
-    gap: 40px;       
-    height: 195px;             /* khoảng giữa chữ, nút, ảnh */
+    justify-content: space-between;
+    gap: 15px;
+    padding: 8px 0;
+    min-height: 100px;
 }
 
-.device-label { font-size: 1.5rem; font-weight: 800; color: #fff; min-width: 100px; text-align: center; }
-.device-icon { width: 90px; height: 90px; object-fit: contain; filter: drop-shadow(0 1px 2px rgba(0,0,0,.25)); transition: transform .25s ease, opacity .25s ease, left .18s cubic-bezier(.4,1.4,.6,1); position: relative; left: 0; }
-.device-icon.active { transform: scale(1.05); opacity: 1; transition-delay: 500ms}
-.device-icon.inactive { opacity: .6; transition-delay: 500ms}
+.device-label { font-size: 1.4rem; font-weight: 800; color: #fff; min-width: 90px; text-align: left; flex: 0 0 90px; }
+.device-icon { 
+    width: 85px; 
+    height: 85px; 
+    object-fit: contain; 
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,.25)); 
+    transition: all .3s cubic-bezier(0.4, 0, 0.2, 1); 
+    position: relative; 
+    left: 0; 
+    flex: 0 0 85px;
+    transform-origin: center;
+}
+
+.device-icon.active { 
+    transform: scale(1.08) rotate(2deg); 
+    opacity: 1; 
+    filter: drop-shadow(0 4px 12px rgba(0,0,0,.4)) brightness(1.1);
+}
+
+.device-icon.inactive { 
+    opacity: .65; 
+    transform: scale(0.95);
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,.15)) grayscale(20%);
+}
+
+/* Enhanced hover effects */
+.device-icon:hover {
+    transform: scale(1.02);
+    filter: drop-shadow(0 2px 8px rgba(0,0,0,.3));
+}
+
+.device-icon.active:hover {
+    transform: scale(1.12) rotate(2deg);
+    filter: drop-shadow(0 6px 16px rgba(0,0,0,.5)) brightness(1.15);
+}
+
+/* Smooth state transitions with bounce effect */
+.device-icon.transitioning {
+    animation: deviceToggle 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes deviceToggle {
+    0% { transform: scale(1); }
+    30% { transform: scale(0.8) rotate(-5deg); }
+    60% { transform: scale(1.15) rotate(3deg); }
+    100% { transform: scale(1.08) rotate(2deg); }
+}
 
 /* Spin the fan icon continuously when it is active */
 #fanIcon.active {
@@ -162,6 +218,43 @@ body {
     transition: transform 1.2s ease, opacity .2s ease, filter .2s ease, left .18s cubic-bezier(.4,1.4,.6,1);
 }
 
+/* Loading spinner animation */
+@keyframes loading-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.slider .loading-spinner {
+    position: absolute;
+    top: 3px;
+    width: 22px;
+    height: 22px;
+    border: 2px solid rgba(0, 0, 0, 0.2);
+    border-radius: 50%;
+    border-top: 2px solid #000000;
+    animation: loading-spin 0.2s linear infinite;
+    z-index: 10;
+    transition: left 0.2s;
+}
+
+/* Position spinner based on current slider state */
+.switch input:not(:checked) + .slider .loading-spinner {
+    left: 39px; /* Right side when OFF */
+}
+
+.switch input:checked + .slider .loading-spinner {
+    left: 3px; /* Left side when ON */
+}
+
+.switch.loading {
+    pointer-events: none;
+}
+
+.switch.loading .slider {
+    background-color: #ff9500 !important;
+    opacity: 0.5;
+}
+
 /* make disabled sliders look dimmed while disabled */
 .switch input:disabled + .slider {
     background-color: #ddd;
@@ -178,6 +271,7 @@ body {
     display: inline-block;
     width: 70px;
     height: 34px;
+    flex: 0 0 70px;
 }
 .switch input {
     opacity: 0;

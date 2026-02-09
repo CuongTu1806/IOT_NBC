@@ -17,12 +17,8 @@ public class CommandService {
 
     public void sendCommand(String room, String device, String action) {
         try {
-            String topic = room + "/commands"; // ví dụ: "room1/commands"
-            String payload = om.writeValueAsString(Map.of(
-                    "device", device,
-                    "action", action
-            ));
-            System.out.println("Publishing to " + topic + " payload=" + payload);
+            String topic = "devices/" + room + "/commands/" + device;
+            String payload = action;
             mqtt.send(topic, payload, 1, false);   // QoS1, not retained
         } catch (Exception e) {
             throw new RuntimeException("Publish command failed", e);

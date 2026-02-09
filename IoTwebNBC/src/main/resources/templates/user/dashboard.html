@@ -38,6 +38,20 @@
                     <span class="card-unit">Lux</span>
                 </div>
             </div>
+            <div class="dashboard-card metric-card rain-card">
+                <div class="card-title">Rain <span>🌧️</span></div>
+                <div class="card-reading">
+                    <span class="card-value" id="rain" th:text="${rain} ?: '--'">--</span>
+                    <span class="card-unit">%</span>
+                </div>
+            </div>
+            <div class="dashboard-card metric-card windy-card">
+                <div class="card-title">Wind <span>💨</span></div>
+                <div class="card-reading">
+                    <span class="card-value" id="windy" th:text="${windy} ?: '--'">--</span>
+                    <span class="card-unit">km/h</span>
+                </div>
+            </div>
             <div class="dashboard-card device-card">
                 <div class="card-title device-title">Device Control <img class="device-cloud" src="/images/cloud.png" alt="cloud"></div>
                 <div class="device-control-group">
@@ -78,6 +92,7 @@
         </div>
 
         <div id="cmdStatus" class="cmd-status" style="margin-left:25px">Chưa gửi lệnh</div>
+        <button onclick="forceRefreshState()" style="margin:10px 25px;padding:8px 16px;cursor:pointer">🔄 Refresh Device State</button>
     </div>
 
     
@@ -118,6 +133,8 @@
             window.temperature = document.getElementById('temperature');
             window.humidity = document.getElementById('humidity');
             window.lightLevel = document.getElementById('lightLevel');
+            window.rain = document.getElementById('rain');
+            window.windy = document.getElementById('windy');
             // timestamp element is optional (was previously commented out in the template); guard its usage
             window.timestamp = document.getElementById('timestamp');
             window.cmdStatus = document.getElementById('cmdStatus');
@@ -142,6 +159,8 @@
                 if(p.lightLevel != null) try{ p.lightLevel = Math.round(Number(p.lightLevel)); }catch(e){}
                 if(p.temperature != null) try{ p.temperature = Number(p.temperature); }catch(e){}
                 if(p.humidity != null) try{ p.humidity = Number(p.humidity); }catch(e){}
+                if(p.rain != null) try{ p.rain = Math.round(Number(p.rain)); }catch(e){}
+                if(p.windy != null) try{ p.windy = Math.round(Number(p.windy)); }catch(e){}
             });
             console.log('serverSeed (preloaded, normalized):', serverSeed);
 
@@ -152,7 +171,9 @@
                     datasets: [
                         { label: 'Temperature (°C)', data: serverSeed.map(p => p.temperature), borderColor: '#e05656', backgroundColor: 'rgba(224,86,86,.25)', tension: .3, pointRadius: 3, yAxisID: 'left' },
                         { label: 'Humidity (%)',     data: serverSeed.map(p => p.humidity),    borderColor: '#33b5ff', backgroundColor: 'rgba(51,181,255,.25)', tension: .3, pointRadius: 3, yAxisID: 'left' },
-                        { label: 'Light (Lux)',      data: serverSeed.map(p => p.lightLevel),  borderColor: '#c9a800', backgroundColor: 'rgba(201,168,0,.25)', tension: .3, pointRadius: 2, cubicInterpolationMode: 'monotone', spanGaps: true, yAxisID: 'right' }
+                        { label: 'Light (Lux)',      data: serverSeed.map(p => p.lightLevel),  borderColor: '#c9a800', backgroundColor: 'rgba(201,168,0,.25)', tension: .3, pointRadius: 2, cubicInterpolationMode: 'monotone', spanGaps: true, yAxisID: 'right' },
+                        { label: 'Rain (%)',         data: serverSeed.map(p => p.rain),        borderColor: '#4a90e2', backgroundColor: 'rgba(74,144,226,.25)', tension: .3, pointRadius: 3, yAxisID: 'left' },
+                        { label: 'Wind (km/h)',      data: serverSeed.map(p => p.windy),       borderColor: '#95a5a6', backgroundColor: 'rgba(149,165,166,.25)', tension: .3, pointRadius: 3, yAxisID: 'left' }
                     ]
                 },
                 options: {
@@ -342,16 +363,20 @@
                 const t  = d.temperature ?? d.temp;
                 const h  = d.humidity    ?? d.hum;
                 const lx = d.lightLevel  ?? d.lux;
+                const r  = d.rain;
+                const w  = d.windy;
                 const ts = d.timestamp   ?? d.ts;
 
                 if (t != null && window.temperature) window.temperature.textContent = t;
                 if (h != null && window.humidity) window.humidity.textContent = h;
                 if (lx != null && window.lightLevel) window.lightLevel.textContent = lx;
+                if (r != null && window.rain) window.rain.textContent = r;
+                if (w != null && window.windy) window.windy.textContent = w;
                 if (window.timestamp) window.timestamp.textContent = ts ?? '--';
 
                 const label = fmtTime(ts);
-                // push combined point: [temp, humidity, light]
-                pushPoint(tempHumChart, label, [t != null ? t : null, h != null ? h : null, lx != null ? lx : null]);
+                // push combined point: [temp, humidity, light, rain, windy]
+                pushPoint(tempHumChart, label, [t != null ? t : null, h != null ? h : null, lx != null ? lx : null, r != null ? r : null, w != null ? w : null]);
                 // apply colors on each update
                 applyColors(t, h, lx);
             }
@@ -368,32 +393,131 @@
                 }
             })();
 
-            // ...existing code... (no device-state refresh on load)
         });
 
-        async function toggleDevice(device, isOn) {
-            const room = 'room1';
-            const action = isOn ? 'on' : 'off';
-            const url = `/dashboard/command?room=${room}&device=${device}&action=${action}`;
 
-            const statusEl = document.getElementById('cmdStatus');
-            if (statusEl) statusEl.textContent = `Đang gửi: ${device} -> ${action}...`;
-
-            try {
-                const res  = await fetch(url, { method: 'POST' });
-                const data = await res.json().catch(() => ({}));
-                if (statusEl) statusEl.textContent = res.ok
-                    ? `OK: ${device} -> ${action} (${data.status ?? ''})`
-                    : `Lỗi ${res.status}`;
-                // Cập nhật icon tương ứng theo trạng thái
-                updateDeviceIcon(device, isOn);
-            } catch (e) {
-                if (statusEl) statusEl.textContent = 'Gửi lệnh thất bại!';
-                console.error(e);
+        // Helper functions for loading state
+        function showLoadingState(device) {
+            const switchEl = document.querySelector(`#${device}Toggle`).closest('.switch');
+            const sliderEl = switchEl?.querySelector('.slider');
+            if (sliderEl) {
+                switchEl.classList.add('loading');
+                // Add spinner element to slider if not exists
+                if (!sliderEl.querySelector('.loading-spinner')) {
+                    const spinner = document.createElement('div');
+                    spinner.className = 'loading-spinner';
+                    sliderEl.appendChild(spinner);
+                }
             }
         }
 
+        function hideLoadingState(device) {
+            const switchEl = document.querySelector(`#${device}Toggle`).closest('.switch');
+            const sliderEl = switchEl?.querySelector('.slider');
+            if (switchEl && sliderEl) {
+                switchEl.classList.remove('loading');
+                const spinner = sliderEl.querySelector('.loading-spinner');
+                if (spinner) {
+                    spinner.remove();
+                }
+            }
+        }
+
+        // gửi lệnh bật/tắt device
+        async function toggleDevice(device, newCheckedState) {
+            const room = 'room1';
+            const action = newCheckedState ? 'on' : 'off';
+            const url = `/dashboard/command?room=${room}&device=${device}&action=${action}`;
+
+            const statusEl = document.getElementById('cmdStatus');
+            updateDeviceIcon(device, newCheckedState);
+            
+            // Show loading state
+            showLoadingState(device);
+            if (statusEl) statusEl.textContent = `Đang gửi: ${device} -> ${action}...`;
+
+            try {
+                const res = await fetch(url, { 
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'text/plain'
+                    }
+                });
+                if (res.ok) {
+                    if (statusEl) statusEl.textContent = `✓ Đã gửi lệnh ${device} -> ${action}`;
+                    console.log(`[Command] Sent ${device} -> ${action}, waiting 0.5s before refresh`);
+                    setTimeout(() => {
+                        forceRefreshState();
+                        hideLoadingState(device);
+                    }, 500);
+                } else {
+                    hideLoadingState(device);
+                    if (statusEl) statusEl.textContent = `Lỗi ${res.status}`;
+                    // Khôi phục checkbox và icon về trạng thái cũ
+                    const toggleEl = document.getElementById(device + 'Toggle');
+                    if (toggleEl) {
+                        toggleEl.checked = !newCheckedState;
+                        updateDeviceIcon(device, !newCheckedState); // Rollback icon
+                    }
+                }
+            } catch (e) {
+                hideLoadingState(device);
+                if (statusEl) statusEl.textContent = 'Gửi lệnh thất bại!';
+                console.error(e);
+                // Khôi phục checkbox và icon về trạng thái cũ
+                const toggleEl = document.getElementById(device + 'Toggle');
+                if (toggleEl) {
+                    toggleEl.checked = !newCheckedState;
+                    updateDeviceIcon(device, !newCheckedState); // Rollback icon
+                }
+            }
+        }
+
+        // kiểm tra esp đã gủi thông báo cập nhật trạng thái device chưa
+        async function pollDeviceState(device, expectedAction, maxAttempts) {
+            let attempts = 0;
+            console.log(`[Poll] Start polling ${device}, expecting: ${expectedAction}`);
+            
+            const pollInterval = setInterval(async () => {
+                attempts++;
+                try {
+                    const res = await fetch('/dashboard/state');
+                    if (res.ok) {
+                        const state = await res.json();
+                        console.log(`[Poll] Raw state response:`, state);
+                        const currentState = state[device]?.toLowerCase();
+                        
+                        console.log(`[Poll] Attempt ${attempts}/${maxAttempts} - ${device} current state: ${currentState}, expected: ${expectedAction}`);
+                        
+                        if (currentState === expectedAction) {
+                            // ESP đã xác nhận, cập nhật icon
+                            clearInterval(pollInterval);
+                            const isOn = (expectedAction === 'on');
+                            updateDeviceIcon(device, isOn);
+                            
+                            const statusEl = document.getElementById('cmdStatus');
+                            if (statusEl) statusEl.textContent = `✓ ${device} đã ${isOn ? 'BẬT' : 'TẮT'}`;
+                            console.log(`[Poll] Success! ${device} confirmed ${expectedAction}`);
+                            return;
+                        }
+                    }
+                } catch (e) {
+                    console.error('[Poll] Error:', e);
+                }
+                
+                if (attempts >= maxAttempts) {
+                    clearInterval(pollInterval);
+                    const statusEl = document.getElementById('cmdStatus');
+                    if (statusEl) statusEl.textContent = `⚠ ${device} không phản hồi - kiểm tra ESP`;
+                    console.log(`[Poll] Timeout after ${maxAttempts} attempts`);
+                }
+            }, 500); // Poll mỗi 500ms
+        }
+
+        // cập nhật trạng thái icons
         function updateDeviceIcon(device, isOn) {
+            console.log(`[Icon Update] ${device} -> ${isOn ? 'ON' : 'OFF'}`);
+            
             const ids = { air: 'airIcon', fan: 'fanIcon', light: 'lightIcon' };
             const paths = {
                 air:   { on: '/images/AirCon_Active.png', off: '/images/AirCon_Not.png' },
@@ -402,17 +526,88 @@
             };
             const elId = ids[device];
             const imgEl = elId ? document.getElementById(elId) : null;
-            if (!imgEl) return;
-            imgEl.classList.remove('active','inactive');
-            // hiệu ứng mờ dần rồi đổi ảnh
-            imgEl.style.opacity = '0';
+            
+            if (!imgEl) {
+                console.error(`[Icon Update] Element not found for device: ${device}, expected ID: ${elId}`);
+                return;
+            }
+
+            console.log(`[Icon Update] Found element for ${device}, current src: ${imgEl.src}`);
+
+            // Remove existing classes
+            imgEl.classList.remove('active', 'inactive', 'transitioning');
+            
+            // Add transitioning class for animation
+            imgEl.classList.add('transitioning');
+            
+            // Scale down and fade effect
+            imgEl.style.transform = 'scale(0.8) rotate(-5deg)';
+            imgEl.style.opacity = '0.3';
+            
             setTimeout(() => {
                 const p = paths[device];
-                if (!p) return;
-                imgEl.src = isOn ? p.on : p.off;
+                if (!p) {
+                    console.error(`[Icon Update] No paths found for device: ${device}`);
+                    return;
+                }
+                
+                const newSrc = isOn ? p.on : p.off;
+                console.log(`[Icon Update] Changing ${device} src from ${imgEl.src} to ${newSrc}`);
+                
+                // Change image source
+                imgEl.src = newSrc;
+                
+                // Reset transform and apply new state
+                imgEl.style.transform = '';
                 imgEl.style.opacity = '1';
+                
+                // Add appropriate state class
                 imgEl.classList.add(isOn ? 'active' : 'inactive');
-            }, 120);
+                console.log(`[Icon Update] Applied class: ${isOn ? 'active' : 'inactive'} to ${device}`);
+                
+                // Remove transitioning class after animation
+                setTimeout(() => {
+                    imgEl.classList.remove('transitioning');
+                }, 600);
+                
+            }, 200);
+        }
+        
+        // ép refresh trạng thái thiết bị từ server
+        async function forceRefreshState() {
+            console.log('[Refresh] Fetching current device states...');
+            try {
+                const res = await fetch('/dashboard/state');
+                if (res.ok) {
+                    const state = await res.json();
+                    console.log('[Refresh] State:', state);
+                    
+                    // Update all checkboxes and clear loading states
+                    ['air', 'fan', 'light'].forEach(device => {
+                        hideLoadingState(device); // Clear any loading state
+                        const toggleEl = document.getElementById(device + 'Toggle');
+                        const currentState = state[device]?.toLowerCase();
+                        const isOn = (currentState === 'on');
+                        
+                        if (toggleEl) {
+                            toggleEl.checked = isOn;
+                            toggleEl.disabled = false;
+                            console.log(`[Refresh] ${device}: ${currentState}, checkbox set to ${toggleEl.checked}`);
+                        }
+                        
+                        // Force icon update with current state
+                        console.log(`[Refresh] Calling updateDeviceIcon for ${device} with state ${isOn}`);
+                        updateDeviceIcon(device, isOn);
+                    });
+                    
+                    const statusEl = document.getElementById('cmdStatus');
+                    if (statusEl) statusEl.textContent = '✓ Đã refresh trạng thái thiết bị';
+                }
+            } catch (e) {
+                console.error('[Refresh] Error:', e);
+                // Clear loading states even on error
+                ['air', 'fan', 'light'].forEach(device => hideLoadingState(device));
+            }
         }
         /*]]>*/
     </script>

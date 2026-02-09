@@ -23,6 +23,8 @@
                 <option value="temperature" th:selected="${sensor == 'temperature'}">Temperature</option>
                 <option value="humidity" th:selected="${sensor == 'humidity'}">Humidity</option>
                 <option value="light_level" th:selected="${sensor == 'light_level'}">Light</option>
+                <option value="rain" th:selected="${sensor == 'rain'}">Rain</option>
+                <option value="windy" th:selected="${sensor == 'windy'}">Wind</option>
                 <option value="timestamp" th:selected="${sensor == 'timestamp'}">Time</option>
             </select>
 
@@ -42,6 +44,8 @@
                         <th data-sort-field="temperature">Temperature <span class="sort-arrows" title="Sort"><span class="arrow up sort-up" data-dir="asc">▲</span><span class="arrow down sort-down" data-dir="desc">▼</span></span></th>
                         <th data-sort-field="humidity">Humidity <span class="sort-arrows" title="Sort"><span class="arrow up sort-up" data-dir="asc">▲</span><span class="arrow down sort-down" data-dir="desc">▼</span></span></th>
                         <th data-sort-field="lightLevel">Light <span class="sort-arrows" title="Sort"><span class="arrow up sort-up" data-dir="asc">▲</span><span class="arrow down sort-down" data-dir="desc">▼</span></span></th>
+                        <th data-sort-field="rain">Rain <span class="sort-arrows" title="Sort"><span class="arrow up sort-up" data-dir="asc">▲</span><span class="arrow down sort-down" data-dir="desc">▼</span></span></th>
+                        <th data-sort-field="windy">Wind <span class="sort-arrows" title="Sort"><span class="arrow up sort-up" data-dir="asc">▲</span><span class="arrow down sort-down" data-dir="desc">▼</span></span></th>
                         <th data-sort-field="timestamp">Time <span class="sort-arrows" title="Sort"><span class="arrow up sort-up" data-dir="asc">▲</span><span class="arrow down sort-down" data-dir="desc">▼</span></span></th>
                     </tr>
                     </thead>
@@ -51,10 +55,12 @@
                         <td th:text="${sensor.temperature}"></td>
                         <td th:text="${sensor.humidity}"></td>
                         <td th:text="${sensor.lightLevel}"></td>
+                        <td th:text="${sensor.rain}"></td>
+                        <td th:text="${sensor.windy}"></td>
                         <td th:text="${#temporals.format(sensor.timestamp, 'yyyy-MM-dd HH:mm:ss')}"></td>
                     </tr>
                     <tr th:if="${#lists.isEmpty(dataSensorEntities)}">
-                        <td colspan="5" style="text-align:center;">Không có dữ liệu</td>
+                        <td colspan="7" style="text-align:center;">Đang tải dữ liệu...</td>
                     </tr>
                     </tbody>
                 </table>

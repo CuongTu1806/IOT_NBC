@@ -31,3 +31,22 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Arduino Libraries ###
+arduino/libraries/
+
+### Additional files to ignore ###
+*.log
+*.tmp
+*.temp
+*.bak
+*.swp
+*~
+.DS_Store
+*.pdf
+*.ino
+
+### Idea workspace files ###
+.idea/workspace.xml
+.idea/dataSources.local.xml
+.idea/copilot.data.migration.*

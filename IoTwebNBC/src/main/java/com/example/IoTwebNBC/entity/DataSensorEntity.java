@@ -32,4 +32,10 @@ public class DataSensorEntity {
 
     @Column(name = "timestamp")
     private LocalDateTime timestamp;
+    
+    @Column(name = "rain")
+    private Integer rain;
+
+    @Column(name = "windy")
+    private Integer windy;
 }

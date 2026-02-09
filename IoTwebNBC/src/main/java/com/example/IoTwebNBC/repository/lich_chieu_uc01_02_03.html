@@ -1,0 +1,1217 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Demo UC01-UC02-UC03 - Quản lý lịch chiếu rạp phim</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    body {
+      margin: 0;
+      background: #f3f4f6;
+      color: #111827;
+    }
+    header {
+      padding: 12px 24px;
+      background: #111827;
+      color: #f9fafb;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 18px;
+    }
+    header .sub {
+      font-size: 12px;
+      opacity: 0.85;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      border-radius: 999px;
+      padding: 3px 10px;
+      font-size: 11px;
+      background: #eef2ff;
+      color: #e5e7eb;
+      border: 1px solid rgba(156, 163, 175, 0.6);
+    }
+    main {
+      padding: 0 24px 24px;
+    }
+    .tabs {
+      display: flex;
+      gap: 8px;
+      border-bottom: 1px solid #e5e7eb;
+      margin: 4px 0 10px;
+    }
+    .tab {
+      padding: 8px 14px;
+      font-size: 13px;
+      border-radius: 10px 10px 0 0;
+      cursor: pointer;
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: #4b5563;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .tab span.icon {
+      font-size: 14px;
+    }
+    .tab.active {
+      background: #ffffff;
+      border-bottom-color: #111827;
+      color: #111827;
+      font-weight: 600;
+    }
+    .tab:hover:not(.active) {
+      background: #e5e7eb;
+    }
+    .tab-panels {
+      margin-top: 0;
+    }
+    .panel {
+      display: none;
+      background: #ffffff;
+      border-radius: 0 12px 12px 12px;
+      box-shadow: 0 1px 6px rgba(15, 23, 42, 0.08);
+      padding: 16px 18px 18px;
+      margin-top: -1px;
+    }
+    .panel.active {
+      display: block;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(260px, 1.1fr) minmax(0, 2fr);
+      gap: 16px;
+    }
+    @media (max-width: 900px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    h2 {
+      font-size: 16px;
+      margin: 0 0 6px;
+    }
+    h3 {
+      font-size: 14px;
+      margin: 10px 0 4px;
+    }
+    .small {
+      font-size: 12px;
+      color: #6b7280;
+    }
+
+    .card-soft {
+      border-radius: 10px;
+      border: 1px solid #e5e7eb;
+      padding: 8px 10px;
+      background: #f9fafb;
+      font-size: 12px;
+    }
+
+    .field-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+      align-items: center;
+    }
+    .field-row label {
+      min-width: 90px;
+      font-size: 12px;
+      color: #4b5563;
+    }
+    .field-row input,
+    .field-row select {
+      flex: 1;
+      padding: 5px 6px;
+      border-radius: 8px;
+      border: 1px solid #d1d5db;
+      font-size: 12px;
+      background: #ffffff;
+    }
+    .field-row input[type="time"] {
+      max-width: 120px;
+    }
+    .field-row input[type="number"] {
+      max-width: 80px;
+    }
+    .field-row small {
+      font-size: 11px;
+      color: #6b7280;
+    }
+
+    .pill-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 10px;
+      background: #e5e7eb;
+      color: #374151;
+    }
+    .pill-draft { background: #e5e7eb; color:#374151; }
+    .pill-pending { background: #fef3c7; color:#92400e; }
+    .pill-approved { background: #dcfce7; color:#166534; }
+    .pill-rejected { background: #fee2e2; color:#b91c1c; }
+
+    .btn {
+      border-radius: 999px;
+      border: 1px solid #d1d5db;
+      padding: 6px 14px;
+      font-size: 13px;
+      background: #fff;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+    .btn-primary {
+      background: #111827;
+      border-color: #111827;
+      color: #f9fafb;
+    }
+    .btn-danger {
+      border-color: #b91c1c;
+      color: #b91c1c;
+      background: #fff7f7;
+    }
+    .btn-ghost {
+      background: transparent;
+      border-color: transparent;
+      padding: 4px 8px;
+      font-size: 11px;
+      color: #4b5563;
+    }
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 1px 4px rgba(15, 23, 42, 0.25);
+    }
+
+    .stack-v {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-top: 6px;
+    }
+    .table th,
+    .table td {
+      border-bottom: 1px solid #e5e7eb;
+      padding: 6px 6px;
+      text-align: left;
+    }
+    .table th {
+      font-size: 11px;
+      color: #6b7280;
+      background: #f3f4f6;
+    }
+    .table tbody tr:hover {
+      background: #f9fafb;
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 999px;
+      font-size: 10px;
+      background: #eef2ff;
+      color: #3730a3;
+    }
+
+    .occupancy-bar-bg {
+      width: 100%;
+      height: 6px;
+      border-radius: 999px;
+      background: #e5e7eb;
+      overflow: hidden;
+    }
+    .occupancy-bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg,#22c55e,#facc15);
+    }
+
+    .flex-between {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .filters-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .filters-row > div {
+      flex: 1;
+      min-width: 130px;
+    }
+    .filters-row label {
+      display: block;
+      font-size: 11px;
+      margin-bottom: 2px;
+      color: #4b5563;
+    }
+    .filters-row input,
+    .filters-row select {
+      width: 100%;
+      padding: 4px 6px;
+      border-radius: 8px;
+      border: 1px solid #d1d5db;
+      font-size: 12px;
+      background: #ffffff;
+    }
+
+    .summary-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .summary-card {
+      border-radius: 10px;
+      border: 1px solid #e5e7eb;
+      padding: 8px 10px;
+      background: #f9fafb;
+      font-size: 12px;
+    }
+    .summary-card-title {
+      font-size: 11px;
+      color: #6b7280;
+      margin-bottom: 4px;
+    }
+    .summary-card-value {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .pending-list {
+      margin-top: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 420px;
+      overflow-y: auto;
+    }
+    .pending-item {
+      border-radius: 10px;
+      border: 1px solid #e5e7eb;
+      padding: 8px 10px;
+      font-size: 12px;
+      cursor: pointer;
+      background: #f9fafb;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .pending-item:hover {
+      background: #eef2ff;
+    }
+    .pending-item.active {
+      border-color: #111827;
+      background: #e5e7ff;
+    }
+    .meta-line {
+      font-size: 11px;
+      color: #4b5563;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 8px;
+    }
+    @media (max-width: 800px) {
+      .split {
+        grid-template-columns: 1fr;
+      }
+    }
+    .subcard {
+      border-radius: 10px;
+      border: 1px solid #e5e7eb;
+      padding: 8px 10px;
+      font-size: 12px;
+      background: #f9fafb;
+    }
+    .subcard-title {
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .reason-box {
+      margin-top: 8px;
+      display: none;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .reason-box textarea {
+      width: 100%;
+      min-height: 70px;
+      padding: 6px 8px;
+      border-radius: 8px;
+      border: 1px solid #d1d5db;
+      font-size: 12px;
+      resize: vertical;
+    }
+
+    .toast {
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      background: #111827;
+      color: #f9fafb;
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 12px;
+      box-shadow: 0 3px 12px rgba(15,23,42,0.45);
+      opacity: 0;
+      transform: translateY(10px);
+      pointer-events: none;
+      transition: all 0.2s ease;
+      z-index: 50;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .mt-8 { margin-top: 8px; }
+    .mt-4 { margin-top: 4px; }
+    
+    .field-label {
+      font-weight: 600;
+      min-width: 120px;
+      display: inline-block;
+    }
+    
+    .field-value {
+      color: #4b5563;
+    }
+  </style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Module lịch chiếu – Demo UC01 • UC02 • UC03</h1>
+    <div class="sub">
+      Mô phỏng liền mạch: Quản lý lịch chiếu (QL rạp) • Tra cứu & xem lịch chiếu (NV/QL) • Phê duyệt suất chiếu (QL cụm).
+    </div>
+  </div>
+  <span class="badge">DEMO – Frontend Only</span>
+</header>
+
+<main>
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" data-target="panel-uc01">
+      <span class="icon">📅</span> UC01 – Quản lý lịch chiếu
+    </button>
+    <button class="tab" data-target="panel-uc02">
+      <span class="icon">🔍</span> UC02 – Tra cứu lịch chiếu
+    </button>
+    <button class="tab" data-target="panel-uc03">
+      <span class="icon">✅</span> UC03 – Phê duyệt suất chiếu
+    </button>
+  </div>
+
+  <div class="tab-panels">
+    <!-- PANEL UC01 -->
+    <section id="panel-uc01" class="panel active">
+      <div class="layout">
+        <!-- Form lập lịch -->
+        <div>
+          <h2>UC01 – Quản lý lịch chiếu (Quản lý rạp)</h2>
+          <div class="small">
+            Demo thao tác tạo mới suất chiếu + cấu hình lịch lặp → sinh ra nhiều suất <strong>PENDING</strong> để QL cụm phê duyệt.
+          </div>
+
+          <h3 class="mt-8">1. Cấu hình suất chiếu cơ bản</h3>
+          <div class="card-soft stack-v">
+            <div class="field-row">
+              <label>Rạp</label>
+              <select id="uc01-cinema">
+                <option value="XYZ Time City">XYZ Time City</option>
+                <option value="XYZ Vincom Bà Triệu">XYZ Vincom Bà Triệu</option>
+                <option value="XYZ Royal City">XYZ Royal City</option>
+              </select>
+            </div>
+            <div class="field-row">
+              <label>Phòng chiếu</label>
+              <select id="uc01-room">
+                <option value="Phòng 1">Phòng 1</option>
+                <option value="Phòng 2">Phòng 2</option>
+                <option value="Phòng 3">Phòng 3</option>
+              </select>
+            </div>
+            <div class="field-row">
+              <label>Phim</label>
+              <select id="uc01-movie">
+                <option value="DUNE: PHẦN HAI">DUNE: PHẦN HAI</option>
+                <option value="MAI">MAI</option>
+                <option value="CONAN: TÀU NGẦM SẮT MÀU ĐEN">CONAN: TÀU NGẦM SẮT MÀU ĐEN</option>
+              </select>
+            </div>
+            <div class="field-row">
+              <label>Ngày bắt đầu</label>
+              <input type="date" id="uc01-startdate" />
+            </div>
+            <div class="field-row">
+              <label>Giờ bắt đầu</label>
+              <input type="time" id="uc01-starttime" />
+              <small>(ví dụ: 20:00)</small>
+            </div>
+            <div class="field-row">
+              <label>Thời lượng (phút)</label>
+              <input type="number" id="uc01-duration" value="120" min="30" />
+            </div>
+            <div class="field-row">
+              <label>Định dạng</label>
+              <select id="uc01-format">
+                <option value="2D">2D</option>
+                <option value="3D">3D</option>
+                <option value="IMAX">IMAX</option>
+              </select>
+            </div>
+          </div>
+
+          <h3 class="mt-8">2. Lịch lặp (tùy chọn – giống Google Calendar)</h3>
+          <div class="card-soft">
+            <div class="field-row">
+              <label style="min-width:140px;">Kiểu lịch</label>
+              <select id="uc01-repeat-type">
+                <option value="single">Lịch đơn (chỉ 1 suất)</option>
+                <option value="weekly">Lặp theo tuần</option>
+              </select>
+            </div>
+
+            <div id="uc01-repeat-config" class="stack-v" style="margin-top:6px; display:none;">
+              <div class="field-row">
+                <label>Trong bao nhiêu tuần</label>
+                <input type="number" id="uc01-weeks" value="4" min="1" />
+              </div>
+              <div class="field-row" style="align-items:flex-start;">
+                <label>Ngày trong tuần</label>
+                <div style="display:flex; flex-wrap:wrap; gap:6px; font-size:11px;">
+                  <label><input type="checkbox" class="uc01-dow" value="1" /> Thứ 2</label>
+                  <label><input type="checkbox" class="uc01-dow" value="2" /> Thứ 3</label>
+                  <label><input type="checkbox" class="uc01-dow" value="3" /> Thứ 4</label>
+                  <label><input type="checkbox" class="uc01-dow" value="4" /> Thứ 5</label>
+                  <label><input type="checkbox" class="uc01-dow" value="5" /> Thứ 6</label>
+                  <label><input type="checkbox" class="uc01-dow" value="6" /> Thứ 7</label>
+                  <label><input type="checkbox" class="uc01-dow" value="0" /> Chủ nhật</label>
+                </div>
+              </div>
+              <div class="small">
+                Ví dụ: chọn Thứ 2,3,4 và 4 tuần → hệ thống sẽ sinh ra nhiều suất tương ứng, tất cả ở trạng thái <strong>PENDING</strong> để gửi QL cụm phê duyệt.
+              </div>
+            </div>
+          </div>
+
+          <h3 class="mt-8">3. Hành động</h3>
+          <div class="stack-v">
+            <div class="small">
+              • <strong>Lưu nháp</strong>: trạng thái <span class="pill-status pill-draft">DRAFT</span> – chưa gửi phê duyệt. <br />
+              • <strong>Lưu & gửi phê duyệt</strong>: trạng thái <span class="pill-status pill-pending">PENDING</span> – sẽ xuất hiện bên UC03.
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button class="btn" id="uc01-btn-draft">💾 Lưu nháp</button>
+              <button class="btn btn-primary" id="uc01-btn-pending">📤 Lưu & gửi phê duyệt</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bảng hiển thị các suất đã tạo (để thấy ngay kết quả UC01) -->
+        <div>
+          <div class="flex-between">
+            <h3>Danh sách suất chiếu (demo dữ liệu dùng chung cho UC01-02-03)</h3>
+            <button class="btn-ghost" id="uc01-btn-refresh">↻ Refresh</button>
+          </div>
+          <div class="small">
+            Dữ liệu này được chia sẻ cho: UC02 (tra cứu) & UC03 (phê duyệt). Tạo mới bên trái xong, có thể chuyển tab để xem.
+          </div>
+          <table class="table" id="uc01-table">
+            <thead>
+            <tr>
+              <th>Phim</th>
+              <th>Rạp / Phòng</th>
+              <th>Ngày</th>
+              <th>Giờ</th>
+              <th>Trạng thái</th>
+            </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- PANEL UC02 -->
+    <section id="panel-uc02" class="panel">
+      <h2>UC02 – Tra cứu & xem lịch chiếu</h2>
+      <div class="small">
+        Màn hình read-only giúp NV rạp / QL tra cứu lịch chiếu theo ngày, rạp, phim... và xem tóm tắt tình hình lấp đầy.
+      </div>
+
+      <div class="card-soft mt-8">
+        <div class="filters-row">
+          <div>
+            <label>Rạp</label>
+            <select id="uc02-filter-cinema">
+              <option value="">Tất cả</option>
+              <option value="XYZ Time City">XYZ Time City</option>
+              <option value="XYZ Vincom Bà Triệu">XYZ Vincom Bà Triệu</option>
+              <option value="XYZ Royal City">XYZ Royal City</option>
+            </select>
+          </div>
+          <div>
+            <label>Ngày</label>
+            <input type="date" id="uc02-filter-date" />
+          </div>
+          <div>
+            <label>Định dạng</label>
+            <select id="uc02-filter-format">
+              <option value="">Tất cả</option>
+              <option value="2D">2D</option>
+              <option value="3D">3D</option>
+              <option value="IMAX">IMAX</option>
+            </select>
+          </div>
+          <div>
+            <label>Tên phim</label>
+            <input type="text" id="uc02-filter-movie" placeholder="Nhập tên phim (Mai, Dune, Conan...)" />
+          </div>
+        </div>
+        <div class="flex-between">
+          <div class="small">Thay đổi bộ lọc → Hệ thống áp dụng và cập nhật ngay danh sách suất chiếu phía dưới.</div>
+          <button class="btn-ghost" id="uc02-btn-clear">Xóa bộ lọc</button>
+        </div>
+      </div>
+
+      <div class="summary-cards" id="uc02-summary">
+        <!-- Tóm tắt: tổng suất, tỷ lệ lấp đầy TB, suất đông khách nhất -->
+      </div>
+
+      <table class="table mt-4" id="uc02-table">
+        <thead>
+        <tr>
+          <th>Giờ</th>
+          <th>Phim</th>
+          <th>Rạp / Phòng</th>
+          <th>Định dạng</th>
+          <th>Ghế bán / tổng</th>
+          <th>Lấp đầy</th>
+          <th>Trạng thái</th>
+        </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <!-- PANEL UC03 -->
+    <section id="panel-uc03" class="panel">
+      <div class="layout">
+        <!-- Danh sách chờ phê duyệt -->
+        <div>
+          <h2>UC03 – Phê duyệt suất chiếu (Quản lý cụm rạp)</h2>
+          <div class="small">
+            Danh sách các suất có trạng thái <span class="pill-status pill-pending">PENDING</span> được đề xuất bởi Quản lý rạp (từ UC01).
+          </div>
+          <div id="uc03-pending-list" class="pending-list"></div>
+        </div>
+
+        <!-- Chi tiết & phê duyệt / từ chối -->
+        <div>
+          <h3>Chi tiết đề xuất & so sánh</h3>
+          <div id="uc03-detail-empty" class="small">
+            Chưa chọn suất nào. Vui lòng chọn một dòng ở danh sách bên trái.
+          </div>
+
+          <div id="uc03-detail-area" style="display:none;">
+            <div class="meta-line" id="uc03-detail-header"></div>
+
+            <div class="split">
+              <div class="subcard">
+                <div class="subcard-title">Lịch hiện tại (demo)</div>
+                <div id="uc03-current-info" class="stack-v small">
+                  <!-- Với demo này, giả định lịch hiện tại ít suất hơn → chủ yếu để minh họa so sánh -->
+                  <div>(Giả lập lịch hiện tại của phòng: hệ thống có thể hiển thị các suất xung quanh để QL cụm đánh giá.)</div>
+                </div>
+              </div>
+              <div class="subcard">
+                <div class="subcard-title">Lịch đề xuất</div>
+                <div id="uc03-proposed-info"></div>
+              </div>
+            </div>
+
+            <div class="actions mt-8">
+              <button class="btn btn-primary" id="uc03-btn-approve">✔ Phê duyệt</button>
+              <button class="btn btn-danger" id="uc03-btn-reject">✖ Từ chối & ghi lý do</button>
+            </div>
+
+            <div id="uc03-reason-box" class="reason-box">
+              <label class="small">Nhập lý do từ chối:</label>
+              <textarea id="uc03-reason-input" placeholder="Ví dụ: Trùng khung giờ với suất hot, đề nghị chuyển sang 21:30..."></textarea>
+              <div class="actions">
+                <button class="btn btn-danger" id="uc03-btn-submit-reject">Gửi từ chối</button>
+                <button class="btn" id="uc03-btn-cancel-reject">Hủy</button>
+              </div>
+            </div>
+
+            <div id="uc03-decision-info" class="small mt-4"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<div id="toast" class="toast"></div>
+
+<script>
+  // ======================================================
+  // DỮ LIỆU DEMO CHUNG CHO CẢ 3 USE CASE
+  // ======================================================
+  // status: DRAFT, PENDING, APPROVED, REJECTED
+  // soldSeats & totalSeats: để UC02 hiển thị occupancy.
+  let showtimes = [
+    {
+      id: 1,
+      cinema: "XYZ Time City",
+      room: "Phòng 1",
+      movie: "DUNE: PHẦN HAI",
+      date: "2025-12-22",
+      startTime: "19:00",
+      endTime: "21:30",
+      format: "IMAX",
+      status: "APPROVED",
+      soldSeats: 100,
+      totalSeats: 120,
+      recurrenceId: null,
+      createdBy: "QLR_TimeCity"
+    },
+    {
+      id: 2,
+      cinema: "XYZ Vincom Bà Triệu",
+      room: "Phòng 2",
+      movie: "MAI",
+      date: "2025-12-22",
+      startTime: "18:30",
+      endTime: "20:30",
+      format: "2D",
+      status: "PENDING",
+      soldSeats: 40,
+      totalSeats: 120,
+      recurrenceId: 1001,
+      createdBy: "QLR_BaTrieu",
+      rejectReason: ""
+    },
+    {
+      id: 3,
+      cinema: "XYZ Royal City",
+      room: "Phòng 3",
+      movie: "CONAN: TÀU NGẦM SẮT MÀU ĐEN",
+      date: "2025-12-22",
+      startTime: "21:15",
+      endTime: "23:00",
+      format: "2D",
+      status: "PENDING",
+      soldSeats: 80,
+      totalSeats: 140,
+      recurrenceId: 1002,
+      createdBy: "QLR_Royal",
+      rejectReason: ""
+    }
+  ];
+
+  // id tăng dần
+  let nextShowtimeId = showtimes.length + 1;
+  let nextRecurrenceId = 2000;
+
+  // ======================================================
+  // TOAST
+  // ======================================================
+  const toastEl = document.getElementById("toast");
+  function showToast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add("show");
+    setTimeout(() => toastEl.classList.remove("show"), 2000);
+  }
+
+  // ======================================================
+  // TAB SWITCHING
+  // ======================================================
+  const tabs = document.querySelectorAll(".tab");
+  const panels = document.querySelectorAll(".panel");
+  tabs.forEach(tab => {
+    tab.addEventListener("click", () => {
+      const targetId = tab.dataset.target;
+      tabs.forEach(t => t.classList.remove("active"));
+      panels.forEach(p => p.classList.remove("active"));
+      tab.classList.add("active");
+      document.getElementById(targetId).classList.add("active");
+      // mỗi khi đổi tab, render lại để thấy dữ liệu cập nhật
+      renderUC01Table();
+      renderUC02();
+      renderUC03();
+    });
+  });
+
+  // ======================================================
+  // UC01 – QUẢN LÝ LỊCH CHIẾU
+  // ======================================================
+  const uc01Cinema = document.getElementById("uc01-cinema");
+  const uc01Room = document.getElementById("uc01-room");
+  const uc01Movie = document.getElementById("uc01-movie");
+  const uc01StartDate = document.getElementById("uc01-startdate");
+  const uc01StartTime = document.getElementById("uc01-starttime");
+  const uc01Duration = document.getElementById("uc01-duration");
+  const uc01Format = document.getElementById("uc01-format");
+  const uc01RepeatType = document.getElementById("uc01-repeat-type");
+  const uc01RepeatConfig = document.getElementById("uc01-repeat-config");
+  const uc01Weeks = document.getElementById("uc01-weeks");
+  const uc01BtnDraft = document.getElementById("uc01-btn-draft");
+  const uc01BtnPending = document.getElementById("uc01-btn-pending");
+  const uc01TableBody = document.querySelector("#uc01-table tbody");
+  const uc01BtnRefresh = document.getElementById("uc01-btn-refresh");
+
+  // set default date today
+  const todayStr = new Date().toISOString().slice(0,10);
+  uc01StartDate.value = todayStr;
+  document.getElementById("uc02-filter-date").value = todayStr;
+
+  uc01RepeatType.addEventListener("change", () => {
+    uc01RepeatConfig.style.display = uc01RepeatType.value === "weekly" ? "block" : "none";
+  });
+
+  function addShowtimesFromForm(status) {
+    const cinema = uc01Cinema.value;
+    const room = uc01Room.value;
+    const movie = uc01Movie.value;
+    const dateStr = uc01StartDate.value;
+    const startTime = uc01StartTime.value;
+    const duration = parseInt(uc01Duration.value || "0", 10);
+    const format = uc01Format.value;
+
+    if (!cinema || !room || !movie || !dateStr || !startTime || duration <= 0) {
+      showToast("Vui lòng nhập đầy đủ thông tin cơ bản (rạp, phòng, phim, ngày, giờ, thời lượng).");
+      return;
+    }
+
+    // tính giờ kết thúc (đơn giản: cộng phút vào giờ)
+    function calcEndTime(start, durationMin) {
+      const [h, m] = start.split(":").map(Number);
+      const total = h*60 + m + durationMin;
+      const hh = String(Math.floor(total / 60) % 24).padStart(2,"0");
+      const mm = String(total % 60).padStart(2,"0");
+      return hh + ":" + mm;
+    }
+    const baseEndTime = calcEndTime(startTime, duration);
+
+    const repeatType = uc01RepeatType.value;
+    let generated = 0;
+
+    if (repeatType === "single") {
+      showtimes.push({
+        id: nextShowtimeId++,
+        cinema,
+        room,
+        movie,
+        date: dateStr,
+        startTime,
+        endTime: baseEndTime,
+        format,
+        status,
+        soldSeats: 0,
+        totalSeats: 120,
+        recurrenceId: null,
+        createdBy: "QLR_DEMO",
+        rejectReason: ""
+      });
+      generated = 1;
+    } else {
+      // weekly pattern
+      const weeks = parseInt(uc01Weeks.value || "1", 10);
+      const dowCheckboxes = document.querySelectorAll(".uc01-dow:checked");
+      if (dowCheckboxes.length === 0) {
+        showToast("Vui lòng chọn ít nhất một ngày trong tuần cho lịch lặp.");
+        return;
+      }
+      const selectedDow = Array.from(dowCheckboxes).map(cb => parseInt(cb.value,10));
+      const recurrenceId = nextRecurrenceId++;
+
+      const startDateObj = new Date(dateStr);
+      if (isNaN(startDateObj.getTime())) {
+        showToast("Ngày bắt đầu không hợp lệ.");
+        return;
+      }
+
+      // sinh trong N tuần
+      for (let w = 0; w < weeks; w++) {
+        selectedDow.forEach(dow => {
+          const d = new Date(startDateObj);
+          // đưa về tuần w
+          d.setDate(d.getDate() + w*7);
+          // chỉnh đến đúng dow
+          const currentDow = d.getDay(); // 0 CN, 1-6 Thứ
+          let diff = dow - currentDow;
+          d.setDate(d.getDate() + diff);
+          const dateGenerated = d.toISOString().slice(0,10);
+
+          showtimes.push({
+            id: nextShowtimeId++,
+            cinema,
+            room,
+            movie,
+            date: dateGenerated,
+            startTime,
+            endTime: baseEndTime,
+            format,
+            status,
+            soldSeats: 0,
+            totalSeats: 120,
+            recurrenceId,
+            createdBy: "QLR_DEMO",
+            rejectReason: ""
+          });
+          generated++;
+        });
+      }
+    }
+
+    renderUC01Table();
+    renderUC02();
+    renderUC03();
+    if (generated > 0) {
+      const msg = repeatType === "single"
+        ? `Đã tạo 1 suất chiếu ở trạng thái ${status}.`
+        : `Đã tạo ${generated} suất chiếu theo lịch lặp (${status}).`;
+      showToast(msg);
+    }
+  }
+
+  uc01BtnDraft.addEventListener("click", () => addShowtimesFromForm("DRAFT"));
+  uc01BtnPending.addEventListener("click", () => addShowtimesFromForm("PENDING"));
+  uc01BtnRefresh.addEventListener("click", () => renderUC01Table());
+
+  function renderUC01Table() {
+    uc01TableBody.innerHTML = "";
+    // sắp theo ngày + giờ
+    const sorted = [...showtimes].sort((a,b) => {
+      if (a.date === b.date) {
+        return a.startTime.localeCompare(b.startTime);
+      }
+      return a.date.localeCompare(b.date);
+    });
+    sorted.forEach(st => {
+      const tr = document.createElement("tr");
+      const statusLabel = getStatusPill(st.status);
+      tr.innerHTML = `
+        <td>${st.movie}</td>
+        <td>${st.cinema} / ${st.room}</td>
+        <td>${st.date}</td>
+        <td>${st.startTime} - ${st.endTime}</td>
+        <td>${statusLabel}</td>
+      `;
+      uc01TableBody.appendChild(tr);
+    });
+  }
+
+  function getStatusPill(status) {
+    if (status === "APPROVED") return `<span class="pill-status pill-approved">APPROVED</span>`;
+    if (status === "PENDING") return `<span class="pill-status pill-pending">PENDING</span>`;
+    if (status === "REJECTED") return `<span class="pill-status pill-rejected">REJECTED</span>`;
+    return `<span class="pill-status pill-draft">DRAFT</span>`;
+  }
+
+  // ======================================================
+  // UC02 – TRA CỨU & XEM LỊCH CHIẾU
+  // ======================================================
+  const uc02Cinema = document.getElementById("uc02-filter-cinema");
+  const uc02Date = document.getElementById("uc02-filter-date");
+  const uc02Format = document.getElementById("uc02-filter-format");
+  const uc02Movie = document.getElementById("uc02-filter-movie");
+  const uc02TableBody = document.querySelector("#uc02-table tbody");
+  const uc02Summary = document.getElementById("uc02-summary");
+  const uc02BtnClear = document.getElementById("uc02-btn-clear");
+
+  uc02Cinema.addEventListener("change", renderUC02);
+  uc02Date.addEventListener("change", renderUC02);
+  uc02Format.addEventListener("change", renderUC02);
+  uc02Movie.addEventListener("input", renderUC02);
+  uc02BtnClear.addEventListener("click", () => {
+    uc02Cinema.value = "";
+    uc02Format.value = "";
+    uc02Movie.value = "";
+    uc02Date.value = todayStr;
+    renderUC02();
+  });
+
+  function renderUC02() {
+    const cinema = uc02Cinema.value;
+    const date = uc02Date.value;
+    const format = uc02Format.value;
+    const movieKeyword = uc02Movie.value.trim().toLowerCase();
+
+    let filtered = showtimes.filter(st => {
+      if (cinema && st.cinema !== cinema) return false;
+      if (date && st.date !== date) return false;
+      if (format && st.format !== format) return false;
+      if (movieKeyword && !st.movie.toLowerCase().includes(movieKeyword)) return false;
+      return true;
+    });
+
+    uc02TableBody.innerHTML = "";
+    if (filtered.length === 0) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td colspan="7" class="small">Không tìm thấy suất chiếu nào phù hợp với bộ lọc.</td>`;
+      uc02TableBody.appendChild(tr);
+    } else {
+      // sort theo giờ
+      filtered.sort((a,b) => a.startTime.localeCompare(b.startTime));
+      filtered.forEach(st => {
+        const occupancy = st.totalSeats > 0 ? (st.soldSeats / st.totalSeats) * 100 : 0;
+        let level = "Vắng";
+        if (occupancy >= 80) level = "Rất đông";
+        else if (occupancy >= 50) level = "Khá đông";
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${st.startTime}</td>
+          <td>${st.movie}</td>
+          <td>${st.cinema} / ${st.room}</td>
+          <td>${st.format}</td>
+          <td>${st.soldSeats} / ${st.totalSeats}</td>
+          <td>
+            <div class="occupancy-bar-bg">
+              <div class="occupancy-bar-fill" style="width:${occupancy.toFixed(0)}%;"></div>
+            </div>
+            <div class="small">${occupancy.toFixed(0)}% – ${level}</div>
+          </td>
+          <td>${getStatusPill(st.status)}</td>
+        `;
+        uc02TableBody.appendChild(tr);
+      });
+    }
+
+    // summary
+    renderUC02Summary(filtered);
+  }
+
+  function renderUC02Summary(list) {
+    uc02Summary.innerHTML = "";
+    const total = list.length;
+    if (total === 0) {
+      uc02Summary.innerHTML = `<div class="summary-card"><div class="summary-card-title">Tổng suất trong ngày</div><div class="summary-card-value">0</div></div>`;
+      return;
+    }
+    let sumOccupancy = 0;
+    let best = list[0];
+    list.forEach(st => {
+      const occ = st.totalSeats > 0 ? st.soldSeats / st.totalSeats : 0;
+      sumOccupancy += occ;
+      if (occ > (best.totalSeats ? best.soldSeats / best.totalSeats : 0)) best = st;
+    });
+    const avgOcc = (sumOccupancy / total) * 100;
+    const bestOcc = best.totalSeats > 0 ? (best.soldSeats / best.totalSeats) * 100 : 0;
+
+    const card1 = document.createElement("div");
+    card1.className = "summary-card";
+    card1.innerHTML = `
+      <div class="summary-card-title">Tổng số suất chiếu (khớp bộ lọc)</div>
+      <div class="summary-card-value">${total}</div>
+    `;
+    const card2 = document.createElement("div");
+    card2.className = "summary-card";
+    card2.innerHTML = `
+      <div class="summary-card-title">Tỷ lệ lấp đầy trung bình</div>
+      <div class="summary-card-value">${avgOcc.toFixed(0)}%</div>
+    `;
+    const card3 = document.createElement("div");
+    card3.className = "summary-card";
+    card3.innerHTML = `
+      <div class="summary-card-title">Suất đông khách nhất</div>
+      <div class="summary-card-value">${best.movie}</div>
+      <div class="small">${best.cinema} / ${best.room} • ${best.date} • ${best.startTime} (${bestOcc.toFixed(0)}%)</div>
+    `;
+    uc02Summary.append(card1, card2, card3);
+  }
+
+  // ======================================================
+  // UC03 – PHÊ DUYỆT SUẤT CHIẾU
+  // ======================================================
+  const uc03List = document.getElementById("uc03-pending-list");
+  const uc03DetailEmpty = document.getElementById("uc03-detail-empty");
+  const uc03DetailArea = document.getElementById("uc03-detail-area");
+  const uc03DetailHeader = document.getElementById("uc03-detail-header");
+  const uc03CurrentInfo = document.getElementById("uc03-current-info");
+  const uc03ProposedInfo = document.getElementById("uc03-proposed-info");
+  const uc03BtnApprove = document.getElementById("uc03-btn-approve");
+  const uc03BtnReject = document.getElementById("uc03-btn-reject");
+  const uc03ReasonBox = document.getElementById("uc03-reason-box");
+  const uc03ReasonInput = document.getElementById("uc03-reason-input");
+  const uc03BtnSubmitReject = document.getElementById("uc03-btn-submit-reject");
+  const uc03BtnCancelReject = document.getElementById("uc03-btn-cancel-reject");
+  const uc03DecisionInfo = document.getElementById("uc03-decision-info");
+
+  let uc03SelectedId = null;
+
+  function renderUC03() {
+    const pendingList = showtimes.filter(st => st.status === "PENDING");
+    uc03List.innerHTML = "";
+    uc03SelectedId = null;
+    uc03DetailArea.style.display = "none";
+    uc03DetailEmpty.style.display = pendingList.length ? "block" : "block";
+    uc03DetailEmpty.textContent = pendingList.length
+      ? "Chưa chọn suất nào. Vui lòng chọn một dòng ở danh sách bên trái."
+      : "Hiện không có suất nào ở trạng thái PENDING.";
+
+    pendingList
+      .sort((a,b) => a.date === b.date ? a.startTime.localeCompare(b.startTime) : a.date.localeCompare(b.date))
+      .forEach(st => {
+        const div = document.createElement("div");
+        div.className = "pending-item";
+        div.dataset.id = st.id;
+        div.innerHTML = `
+          <div><strong>${st.movie}</strong> - ${st.cinema}</div>
+          <div class="meta-line">${st.date} • ${st.startTime} • ${st.room}</div>
+          <div class="meta-line">Trạng thái: <span class="pill-status pill-pending">PENDING</span></div>
+        `;
+        div.addEventListener("click", () => {
+          uc03SelectedId = st.id;
+          document.querySelectorAll(".pending-item").forEach(e => e.classList.remove("active"));
+          div.classList.add("active");
+          renderUC03Detail();
+        });
+        uc03List.appendChild(div);
+      });
+  }
+
+  function renderUC03Detail() {
+    const st = showtimes.find(x => x.id === uc03SelectedId);
+    if (!st) {
+      uc03DetailArea.style.display = "none";
+      uc03DetailEmpty.style.display = "block";
+      return;
+    }
+    uc03DetailArea.style.display = "block";
+    uc03DetailEmpty.style.display = "none";
+    uc03ReasonBox.style.display = "none";
+    uc03ReasonInput.value = "";
+    uc03DecisionInfo.textContent = "";
+
+    uc03DetailHeader.textContent = `Rạp: ${st.cinema} • ${st.room} • Ngày: ${st.date}`;
+
+    // Demo "lịch hiện tại" – ở đây chỉ hiển thị text gợi ý, bạn có thể nối với DB suất hiện có trong phòng đó
+    uc03CurrentInfo.innerHTML = `
+      <div>• Giả lập: phòng này hiện đang có các suất khác xung quanh giờ ${st.startTime}.</div>
+      <div class="small">Trong hệ thống thực, phần này sẽ hiển thị các suất đã APPROVED để QL cụm so sánh xung đột.</div>
+    `;
+
+    uc03ProposedInfo.innerHTML = `
+      <div class="field-row">
+        <span class="field-label">Phim:</span>
+        <span class="field-value">${st.movie}</span>
+      </div>
+      <div class="field-row">
+        <span class="field-label">Giờ đề xuất:</span>
+        <span class="field-value">${st.startTime} - ${st.endTime}</span>
+      </div>
+      <div class="field-row">
+        <span class="field-label">Định dạng:</span>
+        <span class="field-value">${st.format}</span>
+      </div>
+      <div class="field-row">
+        <span class="field-label">Người đề xuất:</span>
+        <span class="field-value">${st.createdBy || "QLR_DEMO"}</span>
+      </div>
+    `;
+
+    const disabled = st.status !== "PENDING";
+    uc03BtnApprove.disabled = disabled;
+    uc03BtnReject.disabled = disabled;
+
+    if (st.status === "APPROVED") {
+      uc03DecisionInfo.textContent = "Lịch này đã được phê duyệt.";
+    } else if (st.status === "REJECTED") {
+      uc03DecisionInfo.textContent = "Lịch này đã bị từ chối. Lý do: " + (st.rejectReason || "(không có).");
+    }
+  }
+
+  uc03BtnApprove.addEventListener("click", () => {
+    const st = showtimes.find(x => x.id === uc03SelectedId);
+    if (!st || st.status !== "PENDING") return;
+    st.status = "APPROVED";
+    st.rejectReason = "";
+    showToast("Đã phê duyệt suất chiếu.");
+    renderUC01Table();
+    renderUC02();
+    renderUC03();
+  });
+
+  uc03BtnReject.addEventListener("click", () => {
+    const st = showtimes.find(x => x.id === uc03SelectedId);
+    if (!st || st.status !== "PENDING") return;
+    uc03ReasonBox.style.display = "flex";
+    uc03ReasonInput.focus();
+  });
+
+  uc03BtnCancelReject.addEventListener("click", () => {
+    uc03ReasonBox.style.display = "none";
+    uc03ReasonInput.value = "";
+  });
+
+  uc03BtnSubmitReject.addEventListener("click", () => {
+    const st = showtimes.find(x => x.id === uc03SelectedId);
+    if (!st || st.status !== "PENDING") return;
+    const reason = uc03ReasonInput.value.trim();
+    if (!reason) {
+      showToast("Vui lòng nhập lý do từ chối.");
+      return;
+    }
+    st.status = "REJECTED";
+    st.rejectReason = reason;
+    showToast("Đã từ chối suất chiếu & lưu lý do.");
+    uc03ReasonBox.style.display = "none";
+    renderUC01Table();
+    renderUC02();
+    renderUC03();
+  });
+
+  // ======================================================
+  // INIT
+  // ======================================================
+  renderUC01Table();
+  renderUC02();
+  renderUC03();
+</script>
+
+</body>
+</html>

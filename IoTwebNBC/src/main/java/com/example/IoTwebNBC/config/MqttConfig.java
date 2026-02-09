@@ -91,7 +91,7 @@ public class MqttConfig {
             Object payloads = msg.getPayload();
             String payload = (payloads instanceof byte[]) ? new String((byte[]) payloads, StandardCharsets.UTF_8) : String.valueOf(payloads);
 
-            // Chia 2 nhánh nhận topic. 1 topic datasensor, 2 topic status
+            // Chia 2 nhánh nhận topic: datasensor, status (JSON với device name)
             if(topic !=  null && topic.endsWith("/data_sensor")){
                 try {
                     handleDataSensor(topic, payload);
@@ -101,7 +101,7 @@ public class MqttConfig {
             }
             else if(topic !=  null && topic.endsWith("/status")){
                 try {
-                    handleStatus(topic, payload);
+                    handleDeviceStatusSingleTopic(topic, payload);
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
@@ -115,18 +115,20 @@ public class MqttConfig {
 
             System.out.println("MQTT IN ["+topic+"] ID:" + " Payload: " + payload);
 
-            // topic: {roomId}/datasensor
+            // topic: devices/{roomId}/data_sensor
             //Tách topic thành các phần string tách bở dấu /
             String[] parts = topic.split("/");
-            String room = parts.length >= 2 ? parts[0] : "unknown";
+            String room = parts.length >= 2 ? parts[1] : "unknown";
 
             try {
                 JsonNode n = om.readTree(payload);
                 Double temp = n.has("temp") && n.get("temp").isNumber() ? n.get("temp").asDouble() : null;
                 Double hum  = n.has("hum")  && n.get("hum").isNumber()  ? n.get("hum").asDouble()  : null;
                 Double light  = n.has("lux")  && n.get("lux").isNumber()  ? n.get("lux").asDouble()  : null;
+                Integer rain = n.has("rain") && n.get("rain").isNumber() ? n.get("rain").asInt() : 0;
+                Integer windy = n.has("windy") && n.get("windy").isNumber() ? n.get("windy").asInt() : 0;
 
-                // ts từ ESP là epoch millis UTC → đổi sang giờ VN để lưu dạng LocalDateTime
+
                 LocalDateTime tsLocal = null;
                 if (n.has("ts") && n.get("ts").canConvertToLong()) {
                     long tsMillis = n.get("ts").asLong();
@@ -134,7 +136,7 @@ public class MqttConfig {
                     tsLocal = Instant.ofEpochMilli(tsMillis).atZone(VN).toLocalDateTime();
                 }
 
-                // Kiểm tra duplicate dựa trên deviceId + timestamp + dữ liệu
+
                 if (tsLocal != null) {
                     // Tìm bản ghi gần nhất của device này
                     var existing = dataSensorRepository.findTop1ByRoomOrderByTimestampDesc(room);
@@ -144,7 +146,7 @@ public class MqttConfig {
                         // Kiểm tra xem có phải duplicate thực sự không
                         boolean isDuplicate = false;
 
-                        if (lastRecord.getTimestamp() != null) {
+                        if (lastRecord.getTimestamp() != null && temp != null && hum != null) {
                             long timeDiff = Math.abs(java.time.Duration.between(lastRecord.getTimestamp(), tsLocal).getSeconds());
 
                             // Nếu timestamp giống hệt và dữ liệu giống hệt → duplicate thực sự
@@ -187,50 +189,104 @@ public class MqttConfig {
                         .humidity(hum)
                         .timestamp(tsLocal)
                         .lightLevel(light)
+                        .rain(rain)
+                        .windy(windy)
                         .room(room)
                         .build();
                 dataSensorRepository.save(dse);
                 System.out.println("Saved datasensor: " + dse);
+                
+                // Kiểm tra ngưỡng cảnh báo và gửi lệnh LED
+                checkAndSendAlert(room, rain, windy);
+                
             } catch (Exception e) {
                 System.err.println("Parse error: " + e.getMessage());
                 e.printStackTrace();
             }
     }
 
-    private void handleStatus(String topic, String payload) throws Exception {
-
-        // lưu vào db
+    private void handleDeviceStatusSingleTopic(String topic, String payload) {
+        // topic: devices/{room}/status
+        // payload: {"device":"fan","state":"on"}
+        System.out.println("DEVICE STATUS IN [" + topic + "] " + payload);
+        
         String[] parts = topic.split("/");
-        String room = parts.length >= 2 ? parts[0] : "unknown";
-
+        if (parts.length < 3) {
+            System.err.println("Invalid status topic: " + topic);
+            return;
+        }
+        
+        String room = parts[1];
+        
         try {
             JsonNode n = om.readTree(payload);
-            String action = n.get("action").isTextual() ? n.get("action").asText() : null;
-            String device = n.get("device").isTextual() ? n.get("device").asText() : null;
-            // ts từ ESP là epoch millis UTC → đổi sang giờ VN để lưu dạng LocalDateTime
-            LocalDateTime action_time = null;
-            if (n.has("ts") && n.get("ts").canConvertToLong()) {
-                long tsMillis = n.get("ts").asLong();
-                ZoneId VN = ZoneId.of("Asia/Ho_Chi_Minh");
-                action_time = Instant.ofEpochMilli(tsMillis).atZone(VN).toLocalDateTime();
+            
+            if (!n.has("device") || !n.has("state")) {
+                return;
             }
-
+            
+            String device = n.get("device").asText();  // fan, air, light
+            String state = n.get("state").asText();    // on, off
+            
+            // Validate device name
+            if (!device.matches("fan|air|light")) {
+                System.err.println("Unknown device: " + device);
+                return;
+            }
+            
+            // Lưu vào DB
             DeviceActionEntity dae = DeviceActionEntity.builder()
                     .room(room)
-                    .status(action)
-                    .timestamp(action_time)
                     .device(device)
+                    .status(state.toUpperCase())  // ON/OFF
+                    .timestamp(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")))
                     .build();
+            
             deviceActionRepository.save(dae);
-            System.out.println("Saved device action: " + dae);
-        }catch (Exception e) {
-            System.err.println("Parse error: " + e.getMessage());
+            
+        } catch (Exception e) {
             e.printStackTrace();
         }
-
-        System.out.println("STATUS [" + topic + "] " + payload);
     }
 
+    // Kiểm tra ngưỡng và gửi lệnh LED cảnh báo
+    private void checkAndSendAlert(String room, Integer rain, Integer windy) {
+        final int RAIN_THRESHOLD = 50;
+        final int WIND_THRESHOLD = 25;
+        
+        boolean rainAlert = (rain != null && rain > RAIN_THRESHOLD);
+        boolean windAlert = (windy != null && windy > WIND_THRESHOLD);
+        
+        String alertTopic = "devices/" + room + "/alert";
+
+        
+        try {
+            // Gửi lệnh bật/tắt LED rain
+            String rainCmd = rainAlert ? "led_rain:on" : "led_rain:off";
+            mqttOutboundChannel().send(
+                org.springframework.messaging.support.MessageBuilder
+                    .withPayload(rainCmd)
+                    .setHeader(MqttHeaders.TOPIC, alertTopic)
+                    .build()
+            );
+            System.out.println("MQTT OUT [" + alertTopic + "] " + rainCmd);
+            
+            Thread.sleep(100);
+            
+            // Gửi lệnh bật/tắt LED wind
+            String windCmd = windAlert ? "led_wind:on" : "led_wind:off";
+            mqttOutboundChannel().send(
+                org.springframework.messaging.support.MessageBuilder
+                    .withPayload(windCmd)
+                    .setHeader(MqttHeaders.TOPIC, alertTopic)
+                    .build()
+            );
+            System.out.println("MQTT OUT [" + alertTopic + "] " + windCmd);
+            
+        } catch (Exception e) {
+            System.err.println("Failed to send alert: " + e.getMessage());
+        }
+    }
 
 
     // -----outbound----- publish

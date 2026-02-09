@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8" />
+    <title>UC02 - Tra cứu & xem lịch chiếu</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        body {
+            margin: 0;
+            background: #f3f4f6;
+            color: #111827;
+        }
+
+        header {
+            padding: 12px 24px;
+            background: #111827;
+            color: #f9fafb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        header .sub {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        main {
+            padding: 16px 24px 32px;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
+            gap: 16px;
+            align-items: flex-start;
+        }
+
+        @media (max-width: 900px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: #ffffff;
+            border-radius: 14px;
+            padding: 14px 16px 16px;
+            box-shadow: 0 1px 6px rgba(15, 23, 42, 0.08);
+        }
+
+        .filters {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 8px 12px;
+            margin-bottom: 8px;
+        }
+
+        @media (max-width: 900px) {
+            .filters {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            font-size: 12px;
+        }
+
+        .filter-group label {
+            color: #6b7280;
+        }
+
+        .filter-group select,
+        .filter-group input[type="date"],
+        .filter-group input[type="time"],
+        .filter-group input[type="text"] {
+            padding: 5px 8px;
+            border-radius: 8px;
+            border: 1px solid #d1d5db;
+            font-size: 13px;
+        }
+
+        .filter-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .search-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            font-size: 12px;
+        }
+
+        .search-box {
+            display: flex;
+            border-radius: 999px;
+            border: 1px solid #d1d5db;
+            overflow: hidden;
+            background: #fff;
+        }
+
+        .search-box input {
+            flex: 1;
+            border: none;
+            padding: 6px 10px;
+            font-size: 13px;
+            outline: none;
+        }
+
+        .search-box span {
+            padding: 0 10px;
+            font-size: 12px;
+            color: #6b7280;
+            display: flex;
+            align-items: center;
+        }
+
+        .summary-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .summary-item {
+            flex: 1;
+            min-width: 140px;
+            border-radius: 10px;
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            padding: 6px 10px;
+            font-size: 12px;
+        }
+
+        .summary-label {
+            color: #6b7280;
+            margin-bottom: 2px;
+        }
+
+        .summary-value {
+            font-weight: 600;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            border-radius: 999px;
+            padding: 2px 8px;
+            font-size: 10px;
+            background: #eef2ff;
+            color: #3730a3;
+        }
+
+        .badge-hot {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
+        .badge-calm {
+            background: #ecfdf3;
+            color: #15803d;
+        }
+
+        .badge-format {
+            background: #ecfeff;
+            color: #0f766e;
+        }
+
+        .badge-status {
+            background: #eff6ff;
+            color: #1d4ed8;
+        }
+
+        .readonly-note {
+            font-size: 11px;
+            color: #6b7280;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            background: #10b981;
+        }
+
+        .showtime-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .showtime-item {
+            border-radius: 10px;
+            border: 1px solid #e5e7eb;
+            padding: 8px 10px;
+            display: grid;
+            grid-template-columns: 70px minmax(0, 1.4fr) minmax(0, 1.2fr);
+            gap: 8px;
+            align-items: center;
+            font-size: 12px;
+            background: #fff;
+        }
+
+        @media (max-width: 800px) {
+            .showtime-item {
+                grid-template-columns: 60px minmax(0, 1.6fr);
+                grid-template-rows: auto auto;
+            }
+        }
+
+        .showtime-time {
+            font-weight: 700;
+        }
+
+        .showtime-main {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .showtime-movie {
+            font-weight: 600;
+        }
+
+        .showtime-meta {
+            font-size: 11px;
+            color: #4b5563;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+
+        .showtime-stats {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            font-size: 11px;
+        }
+
+        .progress-bar {
+            position: relative;
+            width: 100%;
+            height: 6px;
+            border-radius: 999px;
+            background: #e5e7eb;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 999px;
+            background: linear-gradient(90deg, #22c55e, #eab308, #ef4444);
+            width: 50%;
+        }
+
+        .stats-line {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .stats-label {
+            color: #6b7280;
+        }
+
+        .stats-value {
+            font-weight: 600;
+        }
+
+        .side-card h3 {
+            margin: 0 0 6px;
+            font-size: 14px;
+        }
+
+        .side-card p {
+            margin: 0 0 8px;
+            font-size: 12px;
+            color: #4b5563;
+        }
+
+        .side-card ul {
+            margin: 0;
+            padding-left: 18px;
+            font-size: 12px;
+            color: #4b5563;
+        }
+
+        .no-result {
+            margin-top: 8px;
+            font-size: 12px;
+            color: #6b7280;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <div>
+        <h1>UC02 - Tra cứu & xem lịch chiếu</h1>
+        <div class="sub">Chế độ chỉ xem (dùng cho Nhân viên bán vé / Quản lý khi cần tra cứu nhanh)</div>
+    </div>
+    <div class="badge">
+        ROLE: Nhân viên bán vé / Quản lý
+    </div>
+</header>
+
+<main>
+    <div class="layout">
+        <!-- Cột chính: bộ lọc + danh sách suất -->
+        <section class="card">
+            <!-- Hàng filters trên -->
+            <div class="filters">
+                <div class="filter-group">
+                    <label for="clusterSelect">Cụm rạp</label>
+                    <select id="clusterSelect">
+                        <option value="MB">Miền Bắc</option>
+                        <option value="MT">Miền Trung</option>
+                        <option value="MN">Miền Nam</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="cinemaSelect">Rạp</label>
+                    <select id="cinemaSelect">
+                        <option value="timecity">XYZ Time City</option>
+                        <option value="royal">XYZ Royal City</option>
+                        <option value="batrieu">XYZ Vincom Bà Triệu</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="roomSelect">Phòng chiếu</label>
+                    <select id="roomSelect">
+                        <option value="">Tất cả phòng</option>
+                        <option value="1">Phòng 1</option>
+                        <option value="2">Phòng 2</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="dateSelect">Ngày</label>
+                    <input type="date" id="dateSelect" />
+                </div>
+            </div>
+
+            <!-- Hàng tìm kiếm + khung giờ + định dạng -->
+            <div class="filter-row">
+                <div class="search-group">
+                    <label for="searchInput">Tìm theo tên phim</label>
+                    <div class="search-box">
+                        <span>🔍</span>
+                        <input type="text" id="searchInput" placeholder="Nhập tên phim (ví dụ: Mai, Dune, Conan)..." />
+                    </div>
+                </div>
+                <div class="filter-group" style="max-width: 160px;">
+                    <label for="timeFrom">Từ giờ</label>
+                    <input type="time" id="timeFrom" value="00:00" />
+                </div>
+                <div class="filter-group" style="max-width: 160px;">
+                    <label for="timeTo">Đến giờ</label>
+                    <input type="time" id="timeTo" value="23:59" />
+                </div>
+                <div class="filter-group" style="max-width: 160px;">
+                    <label for="formatSelect">Định dạng</label>
+                    <select id="formatSelect">
+                        <option value="">Tất cả</option>
+                        <option value="2D">2D</option>
+                        <option value="3D">3D</option>
+                        <option value="IMAX">IMAX</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="readonly-note">
+                <span class="dot"></span>
+                Màn hình chỉ tra cứu – không có thao tác Thêm/Sửa/Xóa suất chiếu.
+            </div>
+
+            <!-- Tóm tắt nhanh -->
+            <div class="summary-row" id="summaryRow">
+                <div class="summary-item">
+                    <div class="summary-label">Số suất chiếu trong ngày</div>
+                    <div class="summary-value" id="sumShows">0 suất</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">Tỷ lệ lấp đầy trung bình</div>
+                    <div class="summary-value" id="sumOccupancy">0%</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">Suất đông khách nhất</div>
+                    <div class="summary-value" id="sumHottest">-</div>
+                </div>
+            </div>
+
+            <!-- Danh sách suất chiếu -->
+            <div id="showtimeList" class="showtime-list"></div>
+            <div id="noResult" class="no-result" style="display:none;">
+                Không tìm thấy suất chiếu nào khớp điều kiện lọc.
+            </div>
+        </section>
+
+        <!-- Cột phải: giải thích UC & cách dùng -->
+        <aside class="card side-card">
+            <h3>Mục tiêu của UC02</h3>
+            <p>
+                Use Case này được dùng khi nhân viên bán vé hoặc quản lý cần <strong>tra cứu nhanh lịch chiếu</strong> theo
+                ngày/rạp/phòng để tư vấn cho khách hoặc theo dõi tình hình suất.
+            </p>
+            <ul>
+                <li>Tìm phim theo từ khóa (ví dụ: <em>"Dune"</em>, <em>"Mai"</em>, <em>"Conan"</em>)</li>
+                <li>Lọc theo cụm rạp, rạp, phòng chiếu, ngày, khung giờ, định dạng</li>
+                <li>Xem số ghế đã bán / còn trống, mức độ đông khách từng suất</li>
+                <li>Dùng thông tin này để dẫn khách sang bước <em>Đặt vé</em> (Use Case khác)</li>
+            </ul>
+            <p style="margin-top:8px;">
+                Đây là <strong>màn hình chỉ đọc</strong> – không chỉnh sửa cấu hình lịch chiếu.  
+                Các thao tác tạo/sửa/xóa suất chiếu thuộc về <strong>UC01 – Quản lý lịch chiếu</strong>.
+            </p>
+        </aside>
+    </div>
+</main>
+
+<script>
+    // ======= DỮ LIỆU DEMO =======
+    const demoShows = [
+        {
+            id: 1,
+            movie: "MAI",
+            time: "09:00",
+            room: "1",
+            cinema: "timecity",
+            cluster: "MB",
+            format: "2D",
+            lang: "Phụ đề",
+            totalSeats: 120,
+            soldSeats: 45,
+            status: "Đang nhận khách"
+        },
+        {
+            id: 2,
+            movie: "DUNE: PHẦN HAI",
+            time: "13:30",
+            room: "1",
+            cinema: "timecity",
+            cluster: "MB",
+            format: "IMAX",
+            lang: "Phụ đề",
+            totalSeats: 180,
+            soldSeats: 160,
+            status: "Sắp hết chỗ"
+        },
+        {
+            id: 3,
+            movie: "CONAN: TÀU NGẦM SẮT MÀU ĐEN",
+            time: "15:45",
+            room: "2",
+            cinema: "timecity",
+            cluster: "MB",
+            format: "2D",
+            lang: "Lồng tiếng",
+            totalSeats: 100,
+            soldSeats: 70,
+            status: "Đông khách"
+        },
+        {
+            id: 4,
+            movie: "INSIDE OUT 2",
+            time: "18:00",
+            room: "1",
+            cinema: "timecity",
+            cluster: "MB",
+            format: "3D",
+            lang: "Lồng tiếng",
+            totalSeats: 120,
+            soldSeats: 30,
+            status: "Vắng khách"
+        },
+        {
+            id: 5,
+            movie: "DEADPOOL & WOLVERINE",
+            time: "20:15",
+            room: "2",
+            cinema: "timecity",
+            cluster: "MB",
+            format: "2D",
+            lang: "Phụ đề",
+            totalSeats: 100,
+            soldSeats: 95,
+            status: "Rất đông"
+        }
+    ];
+
+    // ======= LẤY ELEMENT =======
+    const showtimeList = document.getElementById("showtimeList");
+    const noResult = document.getElementById("noResult");
+    const sumShows = document.getElementById("sumShows");
+    const sumOccupancy = document.getElementById("sumOccupancy");
+    const sumHottest = document.getElementById("sumHottest");
+
+    const clusterSelect = document.getElementById("clusterSelect");
+    const cinemaSelect = document.getElementById("cinemaSelect");
+    const roomSelect = document.getElementById("roomSelect");
+    const dateSelect = document.getElementById("dateSelect");
+    const searchInput = document.getElementById("searchInput");
+    const timeFrom = document.getElementById("timeFrom");
+    const timeTo = document.getElementById("timeTo");
+    const formatSelect = document.getElementById("formatSelect");
+
+    // ======= HÀM HỖ TRỢ =======
+    function timeToMinutes(t) {
+        const [h, m] = t.split(":").map(Number);
+        return h * 60 + m;
+    }
+
+    function getBadgeHot(occ) {
+        if (occ >= 80) return '<span class="badge badge-hot">🔥 Rất đông khách</span>';
+        if (occ >= 50) return '<span class="badge badge-status">Đông vừa</span>';
+        if (occ >= 20) return '<span class="badge badge-calm">Khá vắng</span>';
+        return '<span class="badge badge-calm">Rất vắng</span>';
+    }
+
+    // ======= RENDER DANH SÁCH SUẤT =======
+    function renderList() {
+        // Lọc dữ liệu theo các điều kiện
+        const keyword = searchInput.value.trim().toLowerCase();
+        const cluster = clusterSelect.value;
+        const cinema = cinemaSelect.value;
+        const room = roomSelect.value;
+        const fmt = formatSelect.value;
+        const fromM = timeToMinutes(timeFrom.value || "00:00");
+        const toM = timeToMinutes(timeTo.value || "23:59");
+
+        let filtered = demoShows.filter(s => {
+            if (cluster && s.cluster !== cluster) return false;
+            if (cinema && s.cinema !== cinema) return false;
+            if (room && s.room !== room) return false;
+            if (fmt && s.format !== fmt) return false;
+
+            const timeM = timeToMinutes(s.time);
+            if (timeM < fromM || timeM > toM) return false;
+
+            if (keyword && !s.movie.toLowerCase().includes(keyword)) return false;
+
+            return true;
+        });
+
+        showtimeList.innerHTML = "";
+
+        if (filtered.length === 0) {
+            noResult.style.display = "block";
+            sumShows.textContent = "0 suất";
+            sumOccupancy.textContent = "0%";
+            sumHottest.textContent = "-";
+            return;
+        } else {
+            noResult.style.display = "none";
+        }
+
+        // Tính summary
+        const totalShows = filtered.length;
+        let occSum = 0;
+        let hottest = filtered[0];
+        let maxOcc = 0;
+
+        filtered.forEach(s => {
+            const occ = Math.round((s.soldSeats / s.totalSeats) * 100);
+            occSum += occ;
+            if (occ > maxOcc) {
+                maxOcc = occ;
+                hottest = s;
+            }
+        });
+
+        sumShows.textContent = `${totalShows} suất`;
+        sumOccupancy.textContent = `${Math.round(occSum / totalShows)}%`;
+        sumHottest.textContent = `${hottest.time} – ${hottest.movie}`;
+
+        // Render từng suất
+        filtered.forEach(s => {
+            const occ = Math.round((s.soldSeats / s.totalSeats) * 100);
+            const left = s.totalSeats - s.soldSeats;
+
+            const item = document.createElement("div");
+            item.className = "showtime-item";
+
+            const timeCol = document.createElement("div");
+            timeCol.className = "showtime-time";
+            timeCol.textContent = s.time;
+            item.appendChild(timeCol);
+
+            const mainCol = document.createElement("div");
+            mainCol.className = "showtime-main";
+            mainCol.innerHTML = `
+                <div class="showtime-movie">${s.movie}</div>
+                <div class="showtime-meta">
+                    <span class="badge badge-format">${s.format}</span>
+                    <span>${s.lang}</span>
+                    <span>• Phòng ${s.room}</span>
+                    <span>• ${s.status}</span>
+                </div>
+            `;
+            item.appendChild(mainCol);
+
+            const statsCol = document.createElement("div");
+            statsCol.className = "showtime-stats";
+            statsCol.innerHTML = `
+                <div class="stats-line">
+                    <span class="stats-label">Đã bán / Tổng:</span>
+                    <span class="stats-value">${s.soldSeats}/${s.totalSeats}</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: ${occ}%"></div>
+                </div>
+                <div class="stats-line">
+                    <span class="stats-label">Còn lại:</span>
+                    <span>${left} ghế</span>
+                </div>
+                <div>${getBadgeHot(occ)}</div>
+            `;
+            item.appendChild(statsCol);
+
+            showtimeList.appendChild(item);
+        });
+    }
+
+    // ======= INIT =======
+    // Set ngày mặc định = hôm nay
+    const today = new Date();
+    dateSelect.value = today.toISOString().split("T")[0];
+
+    [clusterSelect, cinemaSelect, roomSelect, dateSelect, searchInput, timeFrom, timeTo, formatSelect]
+        .forEach(el => el.addEventListener("input", renderList));
+
+    renderList();
+</script>
+</body>
+</html>

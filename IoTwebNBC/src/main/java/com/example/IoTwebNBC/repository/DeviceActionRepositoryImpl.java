@@ -19,8 +19,6 @@ public class DeviceActionRepositoryImpl implements DeviceActionRepositoryCustom 
     @PersistenceContext
     private EntityManager em;
 
-    // no unused fields
-
     @Override
     public Page<DeviceActionEntity> findByFilter(DeviceActionFilterRequest filter, Pageable pageable) {
         String sql = "SELECT  d.id, d.room, d.device, d.status, d.timestamp FROM iot.deviceaction d WHERE 1=1 ";
@@ -34,13 +32,7 @@ public class DeviceActionRepositoryImpl implements DeviceActionRepositoryCustom 
         }
 
         if(filter.getInputSearch() != null && !filter.getInputSearch().equals("")) {
-
-            if(DataTypeUltil.isTimestamp(filter.getInputSearch(), "yyyy-MM-dd HH:mm:ss") || DataTypeUltil.isTimestamp(filter.getInputSearch(), "yyyy-MM-dd HH:mm") || DataTypeUltil.isTimestamp(filter.getInputSearch(), "yyyy-MM-dd HH:mm:")) {
                 where += " AND timestamp like '%" + filter.getInputSearch() + "%' " ;
-            }
-            else {
-                where += "AND (device = '" + filter.getInputSearch() + "' OR status = '" + filter.getInputSearch() + "' OR id = '" + filter.getInputSearch() + "' OR id = ' " + filter.getInputSearch() + "') ";
-            }
         }
 
         // Determine ORDER BY from pageable's sort if present; default to id DESC
@@ -61,12 +53,12 @@ public class DeviceActionRepositoryImpl implements DeviceActionRepositoryCustom 
 
         sql += where + " ORDER BY " + orderBy + " ";
 
-        // build count SQL using same WHERE clause so total reflects filters
-        String countSql = "SELECT COUNT(id) FROM iot.deviceaction d WHERE 1=1 " + where;
+    String countSql = "SELECT COUNT(id) FROM iot.deviceaction d WHERE 1=1 " + where;
     Query query = em.createNativeQuery(sql, DeviceActionEntity.class);
     Pageable pg = (pageable == null) ? org.springframework.data.domain.PageRequest.of(0, 10) : pageable;
     query.setFirstResult((int) pg.getOffset());
     query.setMaxResults(pg.getPageSize());
+
     @SuppressWarnings("unchecked")
     List<DeviceActionEntity> resultList = query.getResultList();
 
